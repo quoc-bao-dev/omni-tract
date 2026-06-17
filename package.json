@@ -14,6 +14,7 @@
     "test": "turbo run test",
     "check": "biome check . && turbo run type-check",
     "commit": "cz",
+    "changelog": "git cliff -o CHANGELOG.md",
     "clean": "turbo run clean && rm -rf node_modules",
     "prepare": "lefthook install"
   },
@@ -24,6 +25,7 @@
     "@commitlint/cz-commitlint": "^21.0.2",
     "@types/node": "^25.9.3",
     "commitizen": "^4.3.2",
+    "git-cliff": "^2.13.1",
     "lefthook": "^2.1.9",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2"
