@@ -1,5 +1,5 @@
-import type { ContentType, Platform } from './platform.js';
 import type { Snapshot } from './metrics.js';
+import type { ContentType, Platform } from './platform.js';
 
 /**
  * Mô hình lưu trữ nội dung dạng time-series trong IndexedDB (document §8).

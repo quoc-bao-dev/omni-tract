@@ -1,5 +1,5 @@
-import type { ContentType, Platform } from './platform.js';
 import type { Metrics } from './metrics.js';
+import type { ContentType, Platform } from './platform.js';
 
 /**
  * Contract giữa frontend và server cho việc thu thập dữ liệu (document §7).
