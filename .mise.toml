@@ -1,0 +1,23 @@
+[tools]
+node = "22"
+pnpm = "10.32.1"
+
+# Tasks ủy quyền cho pnpm script ở root (pnpm tự thêm node_modules/.bin vào PATH,
+# nên oxlint/oxfmt/turbo — vốn là devDeps local — resolve được).
+[tasks.dev]
+run = "pnpm run dev"
+
+[tasks.build]
+run = "pnpm run build"
+
+[tasks.lint]
+run = "pnpm run lint"
+
+[tasks.format]
+run = "pnpm run format"
+
+[tasks.typecheck]
+run = "pnpm run type-check"
+
+[tasks.check]
+run = "pnpm run check"
