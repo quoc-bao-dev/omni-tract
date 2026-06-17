@@ -1,12 +1,13 @@
+import type { CollectStatus, Platform, PostType } from '@omni/sdk';
 import type { SelectOption } from '@/components/ui/multi-select';
 
 export type FilterGroupKey = 'platforms' | 'postTypes' | 'statuses';
 
 export interface FilterValue {
   postedOn: string;
-  platforms: string[];
-  postTypes: string[];
-  statuses: string[];
+  platforms: Platform[];
+  postTypes: PostType[];
+  statuses: CollectStatus[];
 }
 
 export const EMPTY_FILTER: FilterValue = {
@@ -16,7 +17,7 @@ export const EMPTY_FILTER: FilterValue = {
   statuses: [],
 };
 
-export const PLATFORMS: SelectOption<string>[] = [
+export const PLATFORMS: SelectOption<Platform>[] = [
   { value: 'tiktok', label: 'Tiktok' },
   { value: 'facebook', label: 'Facebook' },
   { value: 'instagram', label: 'Instagram' },
@@ -27,7 +28,7 @@ export const PLATFORMS: SelectOption<string>[] = [
   { value: 'reddit', label: 'Reddit' },
 ];
 
-export const POST_TYPES: SelectOption<string>[] = [
+export const POST_TYPES: SelectOption<PostType>[] = [
   { value: 'photo', label: 'Photo' },
   { value: 'text', label: 'Text' },
   { value: 'link', label: 'Link' },
@@ -36,7 +37,7 @@ export const POST_TYPES: SelectOption<string>[] = [
   { value: 'carousel', label: 'Carousel' },
 ];
 
-export const STATUSES: SelectOption<string>[] = [
+export const STATUSES: SelectOption<CollectStatus>[] = [
   { value: 'success', label: 'Success' },
   { value: 'pending', label: 'Pending' },
   { value: 'failed', label: 'Failed' },

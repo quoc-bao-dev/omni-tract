@@ -13,7 +13,7 @@ import {
   ViewIcon,
 } from '@/components/ui/icon';
 import { DetailDrawer } from '@/features/content-detail';
-import type { CollectStatus, ContentRow, RowMetrics } from '@/features/dashboard/types';
+import type { CollectStatus, ContentRow, Metrics } from '@/features/dashboard/types';
 import { cn } from '@/lib/utils/cn';
 import { formatCompact } from '@/lib/utils/format';
 
@@ -24,7 +24,7 @@ const STATUS_META: Record<CollectStatus, { tone: BadgeTone; label: string }> = {
   unsupported: { tone: 'neutral', label: 'Unsupported' },
 };
 
-const METRIC_COLUMNS: { key: keyof RowMetrics; label: string; Icon: typeof CommentIcon }[] = [
+const METRIC_COLUMNS: { key: keyof Metrics; label: string; Icon: typeof CommentIcon }[] = [
   { key: 'reactions', label: 'Reactions', Icon: ViewIcon },
   { key: 'comments', label: 'Comments', Icon: CommentIcon },
   { key: 'shares', label: 'Shares', Icon: ShareIcon },

@@ -1,27 +1,17 @@
-import type { ContentType, Platform } from '@omni/common';
+import type { CollectStatus, Metrics, Platform, PostType } from '@omni/sdk';
 
-/** Trạng thái thu thập của một nội dung (document §10 — partial failure). */
-export type CollectStatus = 'success' | 'pending' | 'failed' | 'unsupported';
+// Re-export domain types để các feature dùng tiện qua 1 chỗ.
+export type { CollectStatus, Metrics, Platform, PostType } from '@omni/sdk';
 
-/** Bộ metric hiển thị trên bảng (snapshot mới nhất). */
-export interface RowMetrics {
-  reactions: number | null;
-  comments: number | null;
-  shares: number | null;
-  views: number | null;
-  saves: number | null;
-  plays: number | null;
-}
-
-/** View-model 1 dòng bảng — dựng từ @omni/common Content + dữ liệu hiển thị. */
+/** View-model 1 dòng bảng — dựng từ @omni/sdk (Content + Metrics) + dữ liệu hiển thị. */
 export interface ContentRow {
   id: string;
   platform: Platform;
-  type: ContentType;
+  type: PostType;
   url: string;
   author: { name: string; avatarUrl?: string; verified?: boolean };
   caption: { text: string; thumbnailUrl?: string };
-  metrics: RowMetrics;
+  metrics: Metrics;
   status: CollectStatus;
 }
 

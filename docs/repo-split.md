@@ -5,13 +5,13 @@
 ## TL;DR
 
 Hiện tại **chưa** tách `web` và `api` thành 2 git repo riêng. Giữ monorepo
-(Turborepo + pnpm workspaces) cho tới khi contract trong `@omni/common`
+(Turborepo + pnpm workspaces) cho tới khi contract trong `@omni/sdk`
 ổn định. Khi tách, phân phối `shared` qua **registry (GitHub Packages) + semver**.
 
 ## Bối cảnh
 
 Doc §6 mô tả monorepo 3 thành phần; §9 yêu cầu mỗi thành phần **deploy độc lập**
-và **commit độc lập**, chia sẻ contract qua `packages/shared`. Câu hỏi đặt ra:
+và **commit độc lập**, chia sẻ contract qua `packages/sdk`. Câu hỏi đặt ra:
 với repo hiện tại, có thể triển khai frontend/server ở **2 repo git riêng biệt**
 ngay chưa?
 
@@ -25,10 +25,10 @@ Quét coupling giữa 2 app:
 | App source import lẫn nhau            | Không có cross-import                                                                    | Không                       |
 | `next.config` transpile shared source | Không có `transpilePackages`                                                             | Không                       |
 | Commit độc lập                        | Đã tách                                                                                  | Không                       |
-| **`@omni/common`**                    | Cả 2 app khai báo `"workspace:*"`; shared `private: true`, `version 0.0.0`, chưa publish | **Có — điểm chặn duy nhất** |
+| **`@omni/sdk`**                    | Cả 2 app khai báo `"workspace:*"`; shared `private: true`, `version 0.0.0`, chưa publish | **Có — điểm chặn duy nhất** |
 
 **Điểm chặn:** giao thức `workspace:*` chỉ resolve **bên trong** pnpm workspace.
-Tách ra repo riêng → `pnpm install` không tìm thấy `@omni/common` → fail.
+Tách ra repo riêng → `pnpm install` không tìm thấy `@omni/sdk` → fail.
 
 ## Quyết định: HOÃN tách trong Phase 1
 
@@ -57,11 +57,11 @@ ràng buộc tổ chức buộc phải tách.
 
 Chiến lược phân phối `shared`: **GitHub Packages + semver**.
 
-1. Bỏ `private: true` ở `packages/shared/package.json`, đặt version semver
+1. Bỏ `private: true` ở `packages/sdk/package.json`, đặt version semver
    (vd `1.0.0`), thêm `publishConfig` trỏ GitHub Packages registry.
    (`files: ["dist"]` đã sẵn.)
-2. CI publish `@omni/common` khi push tag `shared-v*`.
-3. Mỗi app đổi dep `"@omni/common": "workspace:*"` → `"^1.0.0"`.
+2. CI publish `@omni/sdk` khi push tag `shared-v*`.
+3. Mỗi app đổi dep `"@omni/sdk": "workspace:*"` → `"^1.0.0"`.
 4. Tách `apps/frontend-app` và `apps/server` ra repo riêng; mỗi repo có lockfile
    riêng, cấu hình `.npmrc` đọc GitHub Packages + auth token.
 5. Bỏ phần workspace của shared khỏi monorepo (hoặc giữ shared ở repo riêng thứ 3).

@@ -11,8 +11,8 @@
 1. **App là static shell + logic chạy ở client.** Server (`@omni/api`) chỉ thu thập metric; mọi dữ liệu người dùng nằm ở IndexedDB trên trình duyệt.
 2. **`src/app/` chỉ là tầng routing** (mỏng). Logic nghiệp vụ nằm ở `features/` và `lib/`.
 3. **Feature-based (vertical slice).** Mỗi tính năng gói trọn UI + hooks + state riêng; dùng chung qua `components/ui` và `lib/`.
-4. **Một chiều phụ thuộc:** `app/` → `features/` → `lib/` → `@omni/common`. Không đi ngược.
-5. **Contract dùng `@omni/common`**, không tự định nghĩa lại type của server.
+4. **Một chiều phụ thuộc:** `app/` → `features/` → `lib/` → `@omni/sdk`. Không đi ngược.
+5. **Contract dùng `@omni/sdk`**, không tự định nghĩa lại type của server.
 6. **`'use client'` càng sâu càng tốt** để giảm JS bundle.
 
 ---
@@ -62,11 +62,11 @@ export default nextConfig;
 ├─────────────────────────────────────────────────────────────┤
 │ lib/                                                          │
 │   ├─ db/        IndexedDB: client + repository + migration    │
-│   ├─ api/       client gọi @omni/api (contract @omni/common)  │
+│   ├─ api/       client gọi @omni/api (contract @omni/sdk)  │
 │   ├─ export/    CSV / Excel / PDF                             │
 │   └─ url/       validate + dedup URL                          │
 ├─────────────────────────────────────────────────────────────┤
-│ @omni/common    types/contract dùng chung với server          │
+│ @omni/sdk    types/contract dùng chung với server          │
 └─────────────────────────────────────────────────────────────┘
 
 Import URL ─▶ lib/url (validate+dedup) ─▶ lib/api (POST @omni/api)
@@ -200,7 +200,7 @@ export default function Page() {
 
 - Dùng thư viện **`idb`** (wrapper Promise mỏng cho IndexedDB). Không thao tác IndexedDB API thô rải rác.
 - **Repository pattern**: UI/hook chỉ gọi `contentRepository`, không chạm IndexedDB trực tiếp.
-- Schema theo `@omni/common` (`Content`, `Snapshot`, `Metrics`).
+- Schema theo `@omni/sdk` (`Content`, `Snapshot`, `Metrics`).
 
 ```ts
 // lib/db/schema.ts
@@ -214,7 +214,7 @@ export const IDX_UPDATED = 'by-updated-at';
 
 ```ts
 // lib/db/content-repository.ts (rút gọn)
-import type { Content, CollectResultOk } from '@omni/common';
+import type { Content, CollectResultOk } from '@omni/sdk';
 
 export const contentRepository = {
   list(): Promise<Content[]> {
@@ -241,13 +241,13 @@ Quy tắc:
 
 ## 9. Tầng API client (`lib/api`)
 
-- Giao tiếp `@omni/api` qua `fetch`, **dùng contract `@omni/common`** (`CollectRequest`/`CollectResponse`).
+- Giao tiếp `@omni/api` qua `fetch`, **dùng contract `@omni/sdk`** (`CollectRequest`/`CollectResponse`).
 - Base URL từ env `NEXT_PUBLIC_API_BASE_URL` (xem §13).
 - Chuẩn hoá lỗi + xử lý **partial failure per-URL** (document §10).
 
 ```ts
 // lib/api/collect.ts
-import type { CollectRequest, CollectResponse } from '@omni/common';
+import type { CollectRequest, CollectResponse } from '@omni/sdk';
 import { apiClient } from './client';
 
 export function collect(urls: string[]): Promise<CollectResponse> {
@@ -301,7 +301,7 @@ const { toExcel } = await import('@/lib/export/to-excel'); // chỉ tải khi us
 
 ```ts
 import { useState } from 'react'; // 1
-import type { Content } from '@omni/common'; // 2
+import type { Content } from '@omni/sdk'; // 2
 import { contentRepository } from '@/lib/db/content-repository'; // 3
 import { FilterBar } from './filter-bar'; // 4
 ```
@@ -365,6 +365,6 @@ NEXT_PUBLIC_API_BASE_URL=https://api.example.com   # base URL @omni/api
 ## 18. Vấn đề mở ảnh hưởng kiến trúc (chốt sẽ cập nhật doc)
 
 - Filter dashboard cần những gì (§11.1) → định hình `FilterState` + index IndexedDB.
-- Danh sách metric (§11.4) → định hình cột table + `Metrics` trong `@omni/common`.
+- Danh sách metric (§11.4) → định hình cột table + `Metrics` trong `@omni/sdk`.
 - Phạm vi export (§11.2) → logic `lib/export`.
-- Contract thu thập (§11.3) → `lib/api` + `@omni/common`.
+- Contract thu thập (§11.3) → `lib/api` + `@omni/sdk`.

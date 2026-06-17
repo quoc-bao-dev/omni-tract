@@ -1,5 +1,7 @@
 import type { Snapshot } from './metrics.js';
-import type { ContentType, Platform } from './platform.js';
+import type { Platform } from './platform.js';
+import type { PostType } from './post-type.js';
+import type { CollectStatus } from './status.js';
 
 /**
  * Mô hình lưu trữ nội dung dạng time-series trong IndexedDB (document §8).
@@ -7,13 +9,14 @@ import type { ContentType, Platform } from './platform.js';
  */
 export interface Content {
   /** Định danh nội dung đã chuẩn hoá — key của object store. */
-  content_id: string;
+  contentId: string;
   platform: Platform;
-  type: ContentType;
-  source_url: string;
+  type: PostType;
+  sourceUrl: string;
   title?: string;
+  status: CollectStatus;
   snapshots: Snapshot[];
 }
 
-/** Phiên bản schema của object store — phục vụ versioning + migration (document §8, §10). */
+/** Phiên bản schema IndexedDB — phục vụ versioning + migration (document §8, §10). */
 export const CONTENT_SCHEMA_VERSION = 1 as const;

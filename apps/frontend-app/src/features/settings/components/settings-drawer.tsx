@@ -1,5 +1,6 @@
 'use client';
 
+import type { ExportFormat } from '@omni/sdk';
 import { useState } from 'react';
 import { Drawer } from '@/components/ui/drawer';
 import { GripVerticalIcon } from '@/components/ui/icon';
@@ -26,7 +27,7 @@ interface ColumnSetting {
   enabled: boolean;
 }
 
-export type ExportFormat = 'xlsx' | 'csv' | 'pdf';
+export type { ExportFormat };
 
 export interface SettingsValue {
   columns: ColumnSetting[];

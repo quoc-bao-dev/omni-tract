@@ -31,24 +31,24 @@ const STATUSES: ContentRow['status'][] = [
   'success',
 ];
 
-const HOSTS = [
-  'tiktok.com/@minhanle/video/728847...',
-  'facebook.com/peakovicphotos/313...',
-  'threads.net/@design.daily/post/C...',
-  'instagram.com/p/C8aE2LpAj9z/',
-  'youtube.com/watch?v=Da4r7yV0Jps',
-  'x.com/elonmusk/status/180414291...',
-  'linkedin.com/in/john-doe/recent/',
-  'reddit.com/r/pccry/wiki/megathread/posts/',
+const ROWS: { url: string; platform: ContentRow['platform']; type: ContentRow['type'] }[] = [
+  { url: 'tiktok.com/@minhanle/video/728847...', platform: 'tiktok', type: 'video' },
+  { url: 'facebook.com/peakovicphotos/313...', platform: 'facebook', type: 'photo' },
+  { url: 'threads.net/@design.daily/post/C...', platform: 'threads', type: 'text' },
+  { url: 'instagram.com/p/C8aE2LpAj9z/', platform: 'instagram', type: 'carousel' },
+  { url: 'youtube.com/watch?v=Da4r7yV0Jps', platform: 'youtube', type: 'video' },
+  { url: 'x.com/elonmusk/status/180414291...', platform: 'x', type: 'text' },
+  { url: 'linkedin.com/in/john-doe/recent/', platform: 'linkedin', type: 'link' },
+  { url: 'reddit.com/r/pccry/wiki/megathread/posts/', platform: 'reddit', type: 'link' },
 ];
 
-export const MOCK_ROWS: ContentRow[] = HOSTS.map((url, i) => {
+export const MOCK_ROWS: ContentRow[] = ROWS.map((r, i) => {
   const status = STATUSES[i] ?? 'success';
   return {
     id: `c_${i + 1}`,
-    platform: 'facebook',
-    type: i % 3 === 0 ? 'video' : 'post',
-    url,
+    platform: r.platform,
+    type: r.type,
+    url: r.url,
     author: { name: 'Peachy Trần', verified: true },
     caption: { text: CAPTION },
     metrics: metrics(420_000, status),

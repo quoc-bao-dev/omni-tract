@@ -7,7 +7,7 @@ Monorepo (Turborepo + pnpm workspaces) thu thập & theo dõi tăng trưởng me
 ```
 apps/frontend-app   @omni/app    Next.js — Dashboard, IndexedDB, export
 apps/server         @omni/api    Nest.js — thu thập & chuẩn hoá metric
-packages/shared     @omni/common types/contract chung
+packages/sdk        @omni/sdk    enums + domain types + Collect contract
 ```
 
 ## Yêu cầu
@@ -28,6 +28,6 @@ pnpm test           # turbo run test
 
 ## Trạng thái M0
 
-Scaffold monorepo + `packages/shared` đã xong. `apps/frontend-app` và
+Scaffold monorepo + `packages/sdk` đã xong. `apps/frontend-app` và
 `apps/server` được init bằng CLI chính thống (Next / Nest), sau đó wiring vào
 workspace để hoàn thiện M0.

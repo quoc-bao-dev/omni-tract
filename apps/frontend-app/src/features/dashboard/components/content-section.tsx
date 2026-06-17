@@ -7,18 +7,13 @@ import type { ContentRow } from '@/features/dashboard/types';
 
 /**
  * Áp filter (client) lên rows + hiện thanh ActiveFiltersBar khi có filter.
- * Lưu ý: platform/status map trực tiếp; postType/postedOn cần data thật để map đầy đủ (TODO).
+ * platform/postType/status map trực tiếp (cùng enum @omni/sdk); postedOn (date range) — TODO.
  */
 function applyFilters(rows: ContentRow[], f: FilterValue): ContentRow[] {
   return rows.filter((row) => {
     if (f.platforms.length > 0 && !f.platforms.includes(row.platform)) return false;
+    if (f.postTypes.length > 0 && !f.postTypes.includes(row.type)) return false;
     if (f.statuses.length > 0 && !f.statuses.includes(row.status)) return false;
-    if (f.postTypes.length > 0) {
-      const wantsVideo = f.postTypes.includes('video');
-      const wantsOther = f.postTypes.some((t) => t !== 'video');
-      const ok = (wantsVideo && row.type === 'video') || (wantsOther && row.type === 'post');
-      if (!ok) return false;
-    }
     return true;
   });
 }
