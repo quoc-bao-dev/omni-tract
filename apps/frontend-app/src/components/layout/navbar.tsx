@@ -1,8 +1,7 @@
 import Image from 'next/image';
-import { Button } from '@/components/ui/button';
-import { ExportIcon } from '@/components/ui/icon';
 import { FilterButton } from '@/features/content-filter';
 import { ImportButton } from '@/features/content-import';
+import { ExportButton } from '@/features/data-export';
 import { SettingsButton } from '@/features/settings';
 
 /** Navbar (Figma 108:5753): logo trái, các action phải; border-b, px-240 py-12. */
@@ -23,12 +22,7 @@ export function Navbar() {
 
         <FilterButton />
         <SettingsButton />
-        <Button
-          variant="tertiary"
-          leadingIcon={<ExportIcon />}
-        >
-          Export
-        </Button>
+        <ExportButton />
         <ImportButton />
       </div>
     </header>
