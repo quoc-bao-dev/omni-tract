@@ -1,20 +1,24 @@
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import { AppModule } from './app.module';
-
-// FE (Next dev) chạy 3000 → BE mặc định 4100 để không trùng port FE/các service khác.
-const PORT = Number(process.env.PORT ?? 4100);
-const WEB_ORIGIN = process.env.WEB_ORIGIN ?? 'http://localhost:3000';
+import { AllExceptionsFilter } from './infra/common/filters/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Config đã validate fail-fast (ConfigModule). FE dev chạy 3000 → BE mặc định 4100.
+  const config = app.get(ConfigService);
+  const PORT = config.get<number>('PORT', 4100);
+  const WEB_ORIGIN = config.get<string>('WEB_ORIGIN', 'http://localhost:3000');
 
   app.setGlobalPrefix('api');
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );
+  app.useGlobalFilters(new AllExceptionsFilter());
   app.enableCors({ origin: WEB_ORIGIN });
 
   // OpenAPI + Scalar API reference tại /api/docs
@@ -30,7 +34,9 @@ async function bootstrap() {
   app.use('/api/docs', apiReference({ content: openapi }));
 
   await app.listen(PORT);
-  // eslint-disable-next-line no-console
-  console.log(`API: http://localhost:${PORT}/api  ·  Docs: http://localhost:${PORT}/api/docs`);
+  Logger.log(
+    `API: http://localhost:${PORT}/api  ·  Docs: /api/docs  ·  Health: /api/health`,
+    'Bootstrap',
+  );
 }
 void bootstrap();

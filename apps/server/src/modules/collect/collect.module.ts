@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { CrawlerModule } from '../crawler/crawler.module';
+import { CrawlerModule } from '../../infra/crawler/crawler.module';
 import { CollectController } from './collect.controller';
 import { CollectService } from './collect.service';
 

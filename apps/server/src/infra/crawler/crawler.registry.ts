@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Platform } from '@omni/sdk';
-import { PLATFORM_CRAWLERS, PlatformCrawler } from './platform-crawler.interface';
+import { PlatformCrawler } from './platform-crawler.interface';
+import { PLATFORM_CRAWLERS } from './platform-crawlers.token';
 
 /** Phân giải PlatformCrawler theo nền tảng. Thêm nền tảng = đăng ký thêm provider. */
 @Injectable()

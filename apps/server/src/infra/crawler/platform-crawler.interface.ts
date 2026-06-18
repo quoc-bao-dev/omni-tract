@@ -10,6 +10,3 @@ export interface PlatformCrawler {
   /** Lấy + chuẩn hoá metric cho 1 URL. Throw lỗi domain nếu thất bại. */
   crawl(input: CrawlInput): Promise<CollectResultOk>;
 }
-
-/** Token DI cho tập các PlatformCrawler đăng ký. */
-export const PLATFORM_CRAWLERS = Symbol('PLATFORM_CRAWLERS');

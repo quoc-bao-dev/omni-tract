@@ -1,9 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CollectResponse, CollectResult } from '@omni/sdk';
-import { parsePlatform } from '../common/url/parse-platform';
-import { CrawlerRegistry } from '../crawler/crawler.registry';
-
-const CONCURRENCY = 5;
+import { CRAWL_CONCURRENCY, mapWithConcurrency } from '../../infra/common/concurrency';
+import { parsePlatform } from '../../infra/common/url/parse-platform';
+import { CrawlerRegistry } from '../../infra/crawler/crawler.registry';
 
 @Injectable()
 export class CollectService {
@@ -14,7 +13,7 @@ export class CollectService {
   /** Fan-out có giới hạn concurrency; mỗi URL trả 1 CollectResult (partial failure, §10). */
   async collect(urls: string[]): Promise<CollectResponse> {
     const unique = [...new Set(urls.map((u) => u.trim()).filter(Boolean))];
-    const results = await this.mapWithConcurrency(unique, CONCURRENCY, (url) =>
+    const results = await mapWithConcurrency(unique, CRAWL_CONCURRENCY, (url) =>
       this.collectOne(url),
     );
     return { results };
@@ -36,22 +35,5 @@ export class CollectService {
       // TODO: map lỗi domain → CollectErrorCode khi có nghiệp vụ thật.
       return { ok: false, sourceUrl, error: 'fetch_failed', message: (err as Error).message };
     }
-  }
-
-  private async mapWithConcurrency<T, R>(
-    items: T[],
-    limit: number,
-    fn: (item: T) => Promise<R>,
-  ): Promise<R[]> {
-    const results: R[] = new Array(items.length);
-    let cursor = 0;
-    const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-      while (cursor < items.length) {
-        const i = cursor++;
-        results[i] = await fn(items[i]);
-      }
-    });
-    await Promise.all(workers);
-    return results;
   }
 }

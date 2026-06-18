@@ -74,37 +74,46 @@ HTTP POST /api/collect
 
 ## 5. Cây thư mục chuẩn (module-based)
 
+> Gom theo vai trò: **`modules/`** = mọi thứ có HTTP endpoint (feature module); **`infra/`** = hạ tầng không expose route (config, crawler, cross-cutting). Thêm endpoint mới → thêm module trong `modules/`; thêm hạ tầng → vào `infra/`.
+
 ```
 apps/server/
 ├── src/
-│   ├── main.ts                      # bootstrap: ValidationPipe, CORS, global prefix 'api'
-│   ├── app.module.ts                # root module: import ConfigModule + CollectModule
+│   ├── main.ts                      # bootstrap: ValidationPipe, ExceptionFilter, CORS, prefix 'api'
+│   ├── app.module.ts                # root: import ConfigModule + CollectModule + HealthModule
 │   │
-│   ├── config/
-│   │   ├── env.schema.ts            # validate biến môi trường (zod/joi)
-│   │   └── config.module.ts         # ConfigModule.forRoot (global)
+│   ├── modules/                     # ── CÓ HTTP ENDPOINT ──
+│   │   ├── collect/                 # NGHIỆP VỤ CHÍNH
+│   │   │   ├── collect.controller.ts    # POST /api/collect
+│   │   │   ├── collect.service.ts       # điều phối fan-out + gom kết quả
+│   │   │   ├── collect.module.ts
+│   │   │   └── dto/
+│   │   │       └── collect-request.dto.ts   # class-validator
+│   │   └── health/                  # GET /api/health
+│   │       ├── health.controller.ts
+│   │       └── health.module.ts
 │   │
-│   ├── collect/                     # NGHIỆP VỤ CHÍNH
-│   │   ├── collect.controller.ts    # POST /api/collect
-│   │   ├── collect.service.ts       # điều phối fan-out + gom kết quả
-│   │   ├── collect.module.ts
-│   │   └── dto/
-│   │       └── collect-request.dto.ts   # class-validator
-│   │
-│   ├── crawler/                     # tầng thu thập (ẩn sau interface §7)
-│   │   ├── crawler.module.ts
-│   │   ├── crawler.registry.ts      # resolve PlatformCrawler theo Platform
-│   │   ├── platform-crawler.interface.ts
-│   │   ├── normalizer.ts            # raw → Metrics (@omni/sdk)
-│   │   └── platforms/
-│   │       └── facebook.crawler.ts  # Phase 1 (TBD nghiệp vụ)
-│   │
-│   ├── common/                      # cross-cutting
-│   │   ├── filters/                 # exception filter (lỗi không lường)
-│   │   ├── url/                     # parse platform + validate URL
-│   │   └── concurrency.ts           # giới hạn concurrency batch
-│   │
-│   └── health/                      # GET /api/health (optional)
+│   └── infra/                       # ── KHÔNG ENDPOINT (hạ tầng) ──
+│       ├── config/
+│       │   ├── env.validation.ts        # schema env + validateEnv (class-validator), fail-fast
+│       │   └── config.module.ts         # ConfigModule.forRoot (global, validate)
+│       │
+│       ├── crawler/                 # tầng thu thập (ẩn sau interface §7)
+│       │   ├── crawler.module.ts        # chọn real/mock theo CRAWLER_MODE
+│       │   ├── crawler.registry.ts      # resolve PlatformCrawler theo Platform
+│       │   ├── platform-crawler.interface.ts  # contract (interface + CrawlInput)
+│       │   ├── platform-crawlers.token.ts     # DI token PLATFORM_CRAWLERS (tách khỏi interface)
+│       │   ├── normalizer.ts            # raw → CollectResultOk (@omni/sdk)
+│       │   └── platforms/
+│       │       ├── mock.crawler.ts      # MOCK adapter (phase dev) — KHÔNG lẫn code thật
+│       │       └── facebook.crawler.ts  # adapter thật Phase 1 (TBD nghiệp vụ)
+│       │
+│       └── common/                  # cross-cutting
+│           ├── filters/
+│           │   └── all-exceptions.filter.ts   # chuẩn hoá lỗi không lường → 500
+│           ├── url/
+│           │   └── parse-platform.ts    # nhận diện Platform từ URL
+│           └── concurrency.ts           # mapWithConcurrency + CRAWL_CONCURRENCY
 │
 ├── test/                            # e2e (jest)
 ├── nest-cli.json · tsconfig*.json
