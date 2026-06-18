@@ -29,8 +29,14 @@ export interface CollectResultOk {
   platform: Platform;
   type: PostType;
   title?: string;
+  /** Nội dung text bài viết (caption/body đầy đủ). */
+  text?: string;
+  /** Ảnh trong bài (URL CDN) — phần tử đầu dùng làm thumbnail. */
+  images?: string[];
   /** Thời điểm nội dung được đăng (Posted on), ISO 8601. */
   postedAt?: string;
+  /** Link phát video (chỉ post video) — để hiển thị/nhúng, KHÔNG tải về. */
+  videoUrl?: string;
   metrics: Metrics;
   /** Thời điểm server đo, ISO 8601 (UTC). */
   fetchedAt: string;

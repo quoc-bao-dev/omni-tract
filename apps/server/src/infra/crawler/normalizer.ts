@@ -6,8 +6,14 @@ export interface RawContent {
   platform: Platform;
   type: PostType;
   title?: string;
+  /** Nội dung text bài viết. */
+  text?: string;
+  /** Ảnh trong bài (URL CDN). */
+  images?: string[];
   /** ISO 8601. */
   postedAt?: string;
+  /** Link phát video (chỉ post video). */
+  videoUrl?: string;
   metrics: Metrics;
 }
 
@@ -24,7 +30,10 @@ export function toCollectResultOk(raw: RawContent): CollectResultOk {
     platform: raw.platform,
     type: raw.type,
     title: raw.title,
+    text: raw.text,
+    images: raw.images,
     postedAt: raw.postedAt,
+    videoUrl: raw.videoUrl,
     metrics: raw.metrics,
     fetchedAt: new Date().toISOString(),
   };
