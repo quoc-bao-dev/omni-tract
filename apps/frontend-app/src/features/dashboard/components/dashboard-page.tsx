@@ -4,16 +4,31 @@ import { useMemo } from 'react';
 import { ContentSection } from '@/features/dashboard/components/content-section';
 import { Greeting } from '@/features/dashboard/components/greeting';
 import { StatsBar } from '@/features/dashboard/components/stats-bar';
+import { useHydrateContent } from '@/features/dashboard/hooks/use-content-list';
 import { deriveStats } from '@/features/dashboard/stats';
 import { useContentStore } from '@/stores/content-store';
 import { useImportStore } from '@/stores/import-store';
 
 /** Dashboard (Figma 108:5749): rỗng → Greeting; có dữ liệu → stats + bảng. */
 export function DashboardPage() {
+  useHydrateContent(); // nạp dữ liệu đã lưu từ IndexedDB (1 lần)
+  const hydrated = useContentStore((s) => s.hydrated);
   const rows = useContentStore((s) => s.rows);
   const importing = useImportStore((s) => s.status === 'loading');
   const stats = useMemo(() => deriveStats(rows), [rows]);
   const hasData = rows.length > 0 || importing;
+
+  // Chờ đọc xong IndexedDB rồi mới hiện UI (tránh nháy Greeting → bảng).
+  if (!hydrated) {
+    return (
+      <main className="mx-auto flex w-full max-w-[1440px] items-center justify-center px-6 py-24">
+        <div className="flex flex-col items-center gap-3 text-text-muted">
+          <span className="size-8 animate-spin rounded-full border-2 border-border border-t-ink" />
+          <p className="text-sm">Đang tải dữ liệu...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto w-full max-w-[1440px] space-y-6 px-6 py-6">

@@ -33,6 +33,7 @@ export class FacebookCrawler implements PlatformCrawler {
       text: parsed.text,
       images: parsed.images,
       postedAt: parsed.postedAt,
+      videoUrl: parsed.videoUrl, // post video qua đường permalink vẫn có link phát
       metrics: parsed.metrics,
     });
   }
@@ -48,7 +49,7 @@ export class FacebookCrawler implements PlatformCrawler {
       text: parsed.text,
       images: parsed.images,
       postedAt: parsed.postedAt ?? video.postedAt,
-      videoUrl: video.videoUrl,
+      videoUrl: video.videoUrl ?? parsed.videoUrl, // fallback nếu video query không trả link
       metrics: parsed.metrics,
     });
   }

@@ -2,7 +2,9 @@ import type { CollectStatus } from '@omni/sdk';
 import { create } from 'zustand';
 import type { ContentRow } from '@/features/dashboard/types';
 import { collect } from '@/lib/api/collect';
+import { contentRepository } from '@/lib/db/content-repository';
 import { parsePlatform } from '@/lib/url/platform';
+import { logger } from '@/lib/utils/logger';
 import { useContentStore } from '@/stores/content-store';
 import { useFilterStore } from '@/stores/filter-store';
 
@@ -37,9 +39,17 @@ export const useImportStore = create<ImportStore>((set, get) => ({
     // 1) clear toàn bộ filter
     useFilterStore.getState().clear();
 
-    // 2) tạo row pending + đưa lên đầu bảng
+    // 2) tạo row pending; URL TRÙNG (đã có trong bảng) → tái dùng row cũ, KHÔNG tạo mới
+    const contentStore = useContentStore.getState();
     const pending: { id: string; url: string }[] = [];
-    const rows: ContentRow[] = urls.map((url, i) => {
+    const newRows: ContentRow[] = [];
+    urls.forEach((url, i) => {
+      const existing = contentStore.rows.find((r) => r.url === url);
+      if (existing) {
+        pending.push({ id: existing.id, url });
+        contentStore.patchRow(existing.id, { status: 'pending' });
+        return;
+      }
       const id = `imp_${Date.now().toString(36)}_${i}`;
       pending.push({ id, url });
       const host =
@@ -47,7 +57,7 @@ export const useImportStore = create<ImportStore>((set, get) => ({
           .replace(/^https?:\/\//, '')
           .replace(/^www\./, '')
           .split('/')[0] ?? url;
-      return {
+      newRows.push({
         id,
         platform: parsePlatform(url) ?? 'facebook',
         type: 'link',
@@ -63,9 +73,9 @@ export const useImportStore = create<ImportStore>((set, get) => ({
           plays: null,
         },
         status: 'pending',
-      };
+      });
     });
-    useContentStore.getState().prepend(rows);
+    if (newRows.length) useContentStore.getState().prepend(newRows);
 
     // 3) loading + progress giả lập (ramp tới 90% trong khi chờ)
     set({ status: 'loading', total: urls.length, progress: 6, hasErrors: false });
@@ -94,6 +104,13 @@ export const useImportStore = create<ImportStore>((set, get) => ({
             videoUrl: r.videoUrl,
             metrics: r.metrics,
           });
+          // lưu IndexedDB: dedup theo URL → append snapshot vào record cũ (không tạo mới)
+          try {
+            await contentRepository.appendFromCollect(r);
+          } catch (err) {
+            // lỗi quota/DB không làm hỏng import — UI đã cập nhật
+            logger.error('persist content failed', err);
+          }
         } else {
           errors++;
           const status: CollectStatus =

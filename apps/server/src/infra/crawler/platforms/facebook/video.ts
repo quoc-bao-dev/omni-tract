@@ -19,7 +19,7 @@ const VIDEO_URL_KEYS = [
   'browser_native_sd_url',
 ];
 
-function extractVideoUrl(data: unknown): string | undefined {
+export function extractVideoUrl(data: unknown): string | undefined {
   for (const key of VIDEO_URL_KEYS) {
     for (const o of walkObjects(data)) {
       const v = o[key];

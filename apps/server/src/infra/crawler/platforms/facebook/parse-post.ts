@@ -1,5 +1,6 @@
 import type { Metrics, PostType } from '@omni/sdk';
 import { countField, findObject, firstNumber, walkObjects } from './fb-json';
+import { extractVideoUrl } from './video';
 
 export interface ParsedPost {
   type: PostType;
@@ -9,6 +10,8 @@ export interface ParsedPost {
   text?: string;
   /** Ảnh trong bài (URL CDN). */
   images: string[];
+  /** Link phát video nếu post chứa video (lấy ngay trong response permalink). */
+  videoUrl?: string;
   metrics: Metrics;
 }
 
@@ -37,13 +40,16 @@ export function parsePost(data: unknown): ParsedPost {
   };
 
   const created = firstNumber(data, 'creation_time');
+  const videoUrl = extractVideoUrl(data);
 
   return {
-    type: views !== null ? 'video' : 'text',
+    // có link video HOẶC có view count → là post video.
+    type: videoUrl || views !== null ? 'video' : 'text',
     postedAt: created ? new Date(created * 1000).toISOString() : undefined,
     title: extractTitle(data),
     text: extractText(data),
     images: collectImages(data),
+    videoUrl,
     metrics,
   };
 }
