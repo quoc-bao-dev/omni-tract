@@ -33,6 +33,9 @@
       "style": {
         "useImportType": "error"
       },
+      "suspicious": {
+        "noConsole": "error"
+      },
       "nursery": {
         "useSortedClasses": {
           "level": "warn",

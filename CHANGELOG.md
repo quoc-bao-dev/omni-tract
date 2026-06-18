@@ -3,6 +3,10 @@
 Change Log
 ## [unreleased]
 
+### Chores
+
+- **repo**: Adđ changelog
+
 ### Features
 
 - **repo**: Scaffold turborepo monorepo + oxc/lefthook/commitlint toolchain
