@@ -206,7 +206,7 @@ export function ContentTable({ rows }: { rows: ContentRow[] }) {
                     sticky={STICKY.url}
                     selected={isSel}
                   >
-                    <span className="block max-w-[186px] truncate text-text-secondary">
+                    <span className="line-clamp-2 max-w-[186px] text-text-secondary">
                       {row.url}
                     </span>
                   </Td>
@@ -216,10 +216,24 @@ export function ContentTable({ rows }: { rows: ContentRow[] }) {
                   >
                     <span className="flex items-center gap-2">
                       <Avatar
+                        src={row.author.avatarUrl}
+                        alt={row.author.name}
                         fallback={row.author.name.charAt(0)}
                         size={32}
                       />
-                      <span className="truncate font-medium">{row.author.name}</span>
+                      {row.author.profileUrl ? (
+                        <a
+                          href={row.author.profileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="truncate font-medium hover:underline"
+                        >
+                          {row.author.name}
+                        </a>
+                      ) : (
+                        <span className="truncate font-medium">{row.author.name}</span>
+                      )}
                       {row.author.verified ? <VerifiedIcon className="shrink-0 text-info" /> : null}
                     </span>
                   </Td>

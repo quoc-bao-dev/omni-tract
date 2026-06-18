@@ -33,10 +33,10 @@ export function DetailDrawer({ row, open, onClose }: DetailDrawerProps) {
 
   const metrics = [
     { label: 'Likes', value: m.likes },
-    { label: 'Save', value: m.saves },
-    { label: 'Play', value: m.plays },
     { label: 'Shares', value: m.shares },
     { label: 'Comments', value: m.comments },
+    { label: 'Save', value: m.saves },
+    { label: 'Play', value: m.plays },
     { label: 'Views', value: m.views },
   ];
 
@@ -79,7 +79,7 @@ export function DetailDrawer({ row, open, onClose }: DetailDrawerProps) {
         {/* Engagement Metrics */}
         <section className="rounded-xl border border-border-overlay bg-surface p-4">
           <h3 className="font-semibold text-ink text-md">Engagement Metrics</h3>
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="mt-4 grid grid-cols-3 gap-2">
             {metrics.map((it) => (
               <MetricCard
                 key={it.label}

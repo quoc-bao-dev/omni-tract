@@ -9,7 +9,7 @@ export interface ContentRow {
   platform: Platform;
   type: PostType;
   url: string;
-  author: { name: string; avatarUrl?: string; verified?: boolean };
+  author: { name: string; avatarUrl?: string; verified?: boolean; profileUrl?: string };
   caption: { text: string; thumbnailUrl?: string };
   /** Posted on — ISO 8601 (rỗng nếu chưa lấy được). */
   postedAt?: string;

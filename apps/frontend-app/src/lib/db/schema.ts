@@ -21,6 +21,8 @@ export const IDX_SOURCE_URL = 'by-source-url';
  * để dựng lại bảng khi hydrate mà không cần gọi lại server.
  */
 export interface StoredContent extends Content {
+  /** Tác giả bài (lần fetch gần nhất). */
+  author?: { name: string; profilePicture?: string; profileUrl?: string };
   /** Caption/body đầy đủ lần fetch gần nhất. */
   text?: string;
   /** Ảnh trong bài (URL CDN) — phần tử đầu dùng làm thumbnail. */

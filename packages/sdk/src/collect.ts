@@ -21,6 +21,15 @@ export type CollectErrorCode =
   | 'fetch_failed'
   | 'internal_error';
 
+/** Tác giả bài đăng (page/user). */
+export interface Author {
+  name: string;
+  /** Ảnh đại diện (URL CDN). */
+  profilePicture?: string;
+  /** Link trang cá nhân/fanpage. */
+  profileUrl?: string;
+}
+
 /** Kết quả thu thập cho một URL — thành công. */
 export interface CollectResultOk {
   ok: true;
@@ -29,6 +38,8 @@ export interface CollectResultOk {
   platform: Platform;
   type: PostType;
   title?: string;
+  /** Tác giả bài (nếu lấy được). */
+  author?: Author;
   /** Nội dung text bài viết (caption/body đầy đủ). */
   text?: string;
   /** Ảnh trong bài (URL CDN) — phần tử đầu dùng làm thumbnail. */

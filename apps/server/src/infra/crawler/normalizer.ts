@@ -1,4 +1,4 @@
-import { CollectResultOk, Metrics, Platform, PostType } from '@omni/sdk';
+import { Author, CollectResultOk, Metrics, Platform, PostType } from '@omni/sdk';
 
 /** Dữ liệu thô 1 adapter lấy được, trước khi chuẩn hoá thành CollectResultOk. */
 export interface RawContent {
@@ -6,6 +6,8 @@ export interface RawContent {
   platform: Platform;
   type: PostType;
   title?: string;
+  /** Tác giả bài. */
+  author?: Author;
   /** Nội dung text bài viết. */
   text?: string;
   /** Ảnh trong bài (URL CDN). */
@@ -30,6 +32,7 @@ export function toCollectResultOk(raw: RawContent): CollectResultOk {
     platform: raw.platform,
     type: raw.type,
     title: raw.title,
+    author: raw.author,
     text: raw.text,
     images: raw.images,
     postedAt: raw.postedAt,

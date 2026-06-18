@@ -33,7 +33,8 @@ export async function fetchKiotProxyUrl(
  * `user:pass@host:port`, hoặc URL đầy đủ) — xử lý linh hoạt các biến thể.
  */
 function toProxyUrl(data: Record<string, unknown> | undefined): string | undefined {
-  const raw = pickString(data, 'httpProxy');
+  // KiotProxy trả `http` ("host:port"); một số bản trả `httpProxy`.
+  const raw = pickString(data, 'httpProxy') ?? pickString(data, 'http');
   if (!raw) return undefined;
   if (raw.includes('://')) return raw;
 

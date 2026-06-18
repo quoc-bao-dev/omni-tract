@@ -98,6 +98,13 @@ export const useImportStore = create<ImportStore>((set, get) => ({
             status: 'success',
             platform: r.platform,
             type: r.type,
+            ...(r.author && {
+              author: {
+                name: r.author.name,
+                avatarUrl: r.author.profilePicture,
+                profileUrl: r.author.profileUrl,
+              },
+            }),
             caption: { text: r.text ?? r.title ?? match.url, thumbnailUrl: r.images?.[0] },
             postedAt: r.postedAt,
             images: r.images,

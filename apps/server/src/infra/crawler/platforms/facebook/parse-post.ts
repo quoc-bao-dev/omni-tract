@@ -1,4 +1,4 @@
-import type { Metrics, PostType } from '@omni/sdk';
+import type { Author, Metrics, PostType } from '@omni/sdk';
 import { countField, findObject, firstNumber, walkObjects } from './fb-json';
 import { extractVideoUrl } from './video';
 
@@ -6,6 +6,8 @@ export interface ParsedPost {
   type: PostType;
   postedAt?: string;
   title?: string;
+  /** Tác giả bài (actor đầu có ảnh đại diện). */
+  author?: Author;
   /** Nội dung text bài viết (caption/body đầy đủ). */
   text?: string;
   /** Ảnh trong bài (URL CDN). */
@@ -41,17 +43,77 @@ export function parsePost(data: unknown): ParsedPost {
 
   const created = firstNumber(data, 'creation_time');
   const videoUrl = extractVideoUrl(data);
+  const images = collectImages(data);
+  const isVideo = videoUrl != null || views !== null;
 
   return {
-    // có link video HOẶC có view count → là post video.
-    type: videoUrl || views !== null ? 'video' : 'text',
+    // có link/view video → video; không video mà có ảnh → photo; còn lại → text.
+    type: isVideo ? 'video' : images.length > 0 ? 'photo' : 'text',
     postedAt: created ? new Date(created * 1000).toISOString() : undefined,
+    author: extractAuthor(data),
     title: extractTitle(data),
     text: extractText(data),
-    images: collectImages(data),
+    images,
     videoUrl,
     metrics,
   };
+}
+
+/**
+ * Tác giả: quét mọi mảng `actors`, lấy actor có `name`; ưu tiên actor kèm `profile_picture.uri`.
+ * Path xác nhận: ...actor_photo.story.actors[0] = { name, profile_url, profile_picture.uri }.
+ */
+export function extractAuthor(data: unknown): Author | undefined {
+  let best: Author | undefined;
+  for (const o of walkObjects(data)) {
+    if (!Array.isArray(o.actors)) continue;
+    for (const raw of o.actors) {
+      const a = raw as {
+        name?: unknown;
+        url?: unknown;
+        profile_url?: unknown;
+        profile_picture?: { uri?: unknown };
+      };
+      if (typeof a?.name !== 'string' || !a.name) continue;
+      const pic = typeof a.profile_picture?.uri === 'string' ? a.profile_picture.uri : undefined;
+      const url =
+        typeof a.profile_url === 'string'
+          ? a.profile_url
+          : typeof a.url === 'string'
+            ? a.url
+            : undefined;
+      // Lấy actor đầu, nâng cấp lên actor có ảnh đại diện nếu gặp.
+      if (!best || (pic && !best.profilePicture)) {
+        best = { name: a.name, profilePicture: pic, profileUrl: url };
+      }
+    }
+  }
+  return best;
+}
+
+/**
+ * Video id của post video (nếu có) từ permalink:
+ *   data.node.comet_sections.content.story.attachments[0].target.id
+ * Fallback: quét cây tìm attachment có `target.id` dạng số. undefined nếu không phải video.
+ */
+export function extractVideoTargetId(data: unknown): string | undefined {
+  const story = (
+    data as {
+      data?: { node?: { comet_sections?: { content?: { story?: { attachments?: unknown } } } } };
+    }
+  )?.data?.node?.comet_sections?.content?.story;
+  const first = Array.isArray(story?.attachments) ? story.attachments[0] : undefined;
+  const direct = (first as { target?: { id?: unknown } } | undefined)?.target?.id;
+  if (typeof direct === 'string' && /^\d+$/.test(direct)) return direct;
+
+  for (const o of walkObjects(data)) {
+    if (!Array.isArray(o.attachments)) continue;
+    for (const a of o.attachments) {
+      const id = (a as { target?: { id?: unknown } } | undefined)?.target?.id;
+      if (typeof id === 'string' && /^\d+$/.test(id)) return id;
+    }
+  }
+  return undefined;
 }
 
 /** feedback của summary renderer mang đủ reaction_count + share_count. */

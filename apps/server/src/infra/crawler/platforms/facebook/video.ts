@@ -2,15 +2,6 @@ import { fbConfig } from './fb.config';
 import { firstNumber, walkObjects } from './fb-json';
 import { fbGraphql } from './graphql-client';
 
-export interface VideoStory {
-  /** storyID base64 thật của video (format S:_I{actor}:VK:{videoId}) — dùng cho permalink. */
-  storyId: string;
-  /** Thời điểm đăng (publish_time), ISO 8601. */
-  postedAt?: string;
-  /** Link phát video (HD ưu tiên) — để show/nhúng, KHÔNG tải về. */
-  videoUrl?: string;
-}
-
 // Ưu tiên HD → SD. KHÔNG tải video, chỉ lấy link để hiển thị.
 const VIDEO_URL_KEYS = [
   'browser_native_hd_url',
@@ -19,6 +10,7 @@ const VIDEO_URL_KEYS = [
   'browser_native_sd_url',
 ];
 
+/** Link phát đầu tiên (ưu tiên HD) tìm thấy ở bất kỳ độ sâu nào trong cây. */
 export function extractVideoUrl(data: unknown): string | undefined {
   for (const key of VIDEO_URL_KEYS) {
     for (const o of walkObjects(data)) {
@@ -29,7 +21,7 @@ export function extractVideoUrl(data: unknown): string | undefined {
   return undefined;
 }
 
-/** variables video query — giữ nguyên cấu trúc FB, chỉ thay videoID/videoIDStr. */
+/** variables video query (video_home) — giữ nguyên cấu trúc FB, chỉ thay videoID/videoIDStr. */
 function videoVariables(videoId: string) {
   return {
     caller: 'TAHOE',
@@ -56,34 +48,22 @@ function videoVariables(videoId: string) {
   };
 }
 
-/** video id từ URL: /watch/?v={id}, /videos/{slug}/{id}/, /reel/{id}. undefined nếu không phải video. */
-export function extractVideoId(url: string): string | undefined {
-  try {
-    const u = new URL(url);
-    const v = u.searchParams.get('v');
-    if (v && /^\d+$/.test(v)) return v;
-    const path = u.pathname;
-    if (!/\/(?:videos|watch|reel|v)(?:\/|$)/.test(path)) return undefined;
-    const m =
-      path.match(/\/(?:videos|reel|v)\/(?:[^/]+\/)?(\d{6,})\/?$/) ?? path.match(/\/(\d{6,})\/?$/);
-    return m?.[1];
-  } catch {
-    return undefined;
-  }
+export interface VideoMeta {
+  /** Link phát video (HD ưu tiên) — để show/nhúng, KHÔNG tải về. */
+  videoUrl?: string;
+  /** Thời điểm đăng (publish_time), ISO 8601. */
+  postedAt?: string;
 }
 
-/** Gọi video query → story id thật (cho permalink) + publish_time. */
-export async function fetchVideoStory(videoId: string): Promise<VideoStory> {
+/**
+ * Bước 3: videoID (lấy từ permalink attachments[0].target.id) → link phát + publish_time.
+ * doc 26984026684624315. KHÔNG cần đăng nhập.
+ */
+export async function fetchVideoMeta(videoId: string): Promise<VideoMeta> {
   const data = await fbGraphql({ docId: fbConfig.docId.video, variables: videoVariables(videoId) });
-  const story = (data as { data?: { video?: { story?: { id?: unknown } } } })?.data?.video?.story;
-  const storyId = typeof story?.id === 'string' ? story.id : undefined;
-  if (!storyId) {
-    throw new Error('FB video: không lấy được story id từ video query.');
-  }
   const publish = firstNumber(data, 'publish_time');
   return {
-    storyId,
-    postedAt: publish ? new Date(publish * 1000).toISOString() : undefined,
     videoUrl: extractVideoUrl(data),
+    postedAt: publish ? new Date(publish * 1000).toISOString() : undefined,
   };
 }

@@ -29,7 +29,9 @@ export function toContentRow(c: StoredContent): ContentRow {
     platform: c.platform,
     type: c.type,
     url: c.sourceUrl,
-    author: { name: host(c.sourceUrl) },
+    author: c.author
+      ? { name: c.author.name, avatarUrl: c.author.profilePicture, profileUrl: c.author.profileUrl }
+      : { name: host(c.sourceUrl) },
     caption: { text: c.text ?? c.title ?? c.sourceUrl, thumbnailUrl: c.images?.[0] },
     postedAt: c.postedAt,
     images: c.images,

@@ -42,9 +42,11 @@ interface ScrapeData {
 }
 
 /**
- * URL → {actorId, postId}. Hai dạng URL (đã xác nhận shape share_scrape_data):
- *  - id-số `/{pageId}/posts/{postId}/` → share_type 18, share_params là MẢNG [actor, "posts/{id}/"].
- *  - username/slug `/{name}/posts/{slug}/{postId}/` → share_type 100, params là OBJECT (không có id)
+ * URL → {actorId, postId}. Các shape share_scrape_data đã xác nhận từ response thật:
+ *  - share/v|p `share_type 37` → share_params = [id] (MỘT id) ⇒ actor = post = id,
+ *    storyID = base64("S:_I{id}:{id}:{id}").
+ *  - id-số `/{pageId}/posts/{postId}/` → share_type 18, share_params = [actor, "posts/{id}/"].
+ *  - username/slug `/{name}/posts/{slug}/{postId}/` → params OBJECT (không có id)
  *    ⇒ post_id lấy từ URL, actor (page id) resolve riêng từ URL profile gốc.
  */
 export async function resolveStoryRef(url: string): Promise<StoryRef> {
@@ -71,14 +73,22 @@ export async function resolveStoryRef(url: string): Promise<StoryRef> {
   throw new Error('FB resolve: không trích được actor_id/post_id từ URL.');
 }
 
-/** Dạng id-số: share_params = [actorId, "posts/{postId}/"]. */
+/**
+ * Trích từ share_params (mảng):
+ *  - [actor, "posts/{id}/"] → {actor, post} riêng (share_type 18).
+ *  - [id] một phần tử (share_type 37, share/v|p) → actor = post = id.
+ * Bỏ qua share_type 1 (profile/page) để báo lỗi rõ ở tầng trên.
+ */
 function extractFromScrapeArray(data: unknown): StoryRef | undefined {
   const scrape = readScrape(data);
   if (!scrape || !Array.isArray(scrape.share_params)) return undefined;
+  if (scrape.share_type === 1) return undefined; // profile/page, không phải post
   const params = scrape.share_params.map((x) => String(x));
   const actorId = params.find((s) => /^\d+$/.test(s));
-  const postId = params.map(extractPostId).find((id): id is string => !!id && id !== actorId);
-  return actorId && postId ? { actorId, postId } : undefined;
+  if (!actorId) return undefined;
+  const postId =
+    params.map(extractPostId).find((id): id is string => !!id && id !== actorId) ?? actorId;
+  return { actorId, postId };
 }
 
 /**
@@ -136,6 +146,6 @@ function readScrape(data: unknown): ScrapeData | undefined {
 }
 
 /** encoded_storyID = base64("S:_I{actor_id}:{post_id}:{post_id}"). */
-export function encodeStoryId({ actorId, postId }: StoryRef): string {
-  return Buffer.from(`S:_I${actorId}:${postId}:${postId}`, 'utf8').toString('base64');
+export function encodeStoryId({ postId }: StoryRef): string {
+  return Buffer.from(`S:_I${postId}:${postId}:${postId}`, 'utf8').toString('base64');
 }
