@@ -88,6 +88,10 @@ export const useImportStore = create<ImportStore>((set, get) => ({
             status: 'success',
             platform: r.platform,
             type: r.type,
+            caption: { text: r.text ?? r.title ?? match.url, thumbnailUrl: r.images?.[0] },
+            postedAt: r.postedAt,
+            images: r.images,
+            videoUrl: r.videoUrl,
             metrics: r.metrics,
           });
         } else {

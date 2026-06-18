@@ -6,7 +6,7 @@ import { CheckIcon, ExternalLinkIcon } from '@/components/ui/icon';
 import { PostPreview } from '@/features/content-detail/components/post-preview';
 import { MetricCard } from '@/features/dashboard/components/metric-card';
 import type { CollectStatus, ContentRow } from '@/features/dashboard/types';
-import { formatCompact } from '@/lib/utils/format';
+import { formatCompact, formatDate } from '@/lib/utils/format';
 
 const STATUS_META: Record<CollectStatus, { tone: BadgeTone; label: string }> = {
   success: { tone: 'success', label: 'Success' },
@@ -90,21 +90,48 @@ export function DetailDrawer({ row, open, onClose }: DetailDrawerProps) {
           </div>
         </section>
 
-        {/* Post preview */}
+        {/* Post preview — nội dung + thumbnail */}
         <PostPreview
           data={{
             author: row.author.name,
-            community: 'All about plants',
-            timestamp: '06/09/2026',
-            title: 'Here’s a title for your post, and it is optional.',
+            timestamp: row.postedAt ? formatDate(row.postedAt) : '',
             caption: row.caption.text,
+            thumbnailUrl: row.caption.thumbnailUrl,
             links: [href],
-            preview: {
-              domain: row.url.replace(/^https?:\/\//, '').split('/')[0] ?? '',
-              title: row.caption.text,
-            },
+            preview: row.caption.thumbnailUrl
+              ? { domain: row.url.replace(/^https?:\/\//, '').split('/')[0] ?? '', title: '' }
+              : undefined,
           }}
         />
+
+        {/* Media — video + hình ảnh, hiển thị DƯỚI bài post */}
+        {row.videoUrl || (row.images && row.images.length > 0) ? (
+          <section className="flex flex-col gap-3 rounded-xl border border-border-overlay bg-surface p-4">
+            <h3 className="font-semibold text-ink text-md">Media</h3>
+            {row.videoUrl ? (
+              // biome-ignore lint/a11y/useMediaCaption: nội dung FB không kèm caption track.
+              <video
+                src={row.videoUrl}
+                poster={row.images?.[0]}
+                controls
+                className="w-full rounded-lg border border-border bg-ink"
+              />
+            ) : null}
+            {row.images && row.images.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                {row.images.map((src) => (
+                  // biome-ignore lint/performance/noImgElement: URL fbcdn có token ký/hết hạn, không hợp next/image.
+                  <img
+                    key={src}
+                    src={src}
+                    alt=""
+                    className="aspect-square w-full rounded-lg object-cover"
+                  />
+                ))}
+              </div>
+            ) : null}
+          </section>
+        ) : null}
       </div>
     </Drawer>
   );

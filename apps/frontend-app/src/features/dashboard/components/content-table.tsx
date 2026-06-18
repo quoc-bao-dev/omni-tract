@@ -229,10 +229,19 @@ export function ContentTable({ rows }: { rows: ContentRow[] }) {
                     divider
                   >
                     <span className="flex items-center gap-2">
-                      <span
-                        className="size-9 shrink-0 rounded-md bg-ink"
-                        aria-hidden
-                      />
+                      {row.caption.thumbnailUrl ? (
+                        // biome-ignore lint/performance/noImgElement: URL fbcdn có token ký/hết hạn, không hợp next/image.
+                        <img
+                          src={row.caption.thumbnailUrl}
+                          alt=""
+                          className="size-9 shrink-0 rounded-md object-cover"
+                        />
+                      ) : (
+                        <span
+                          className="size-9 shrink-0 rounded-md bg-ink"
+                          aria-hidden
+                        />
+                      )}
                       <span className="line-clamp-2 max-w-[200px] text-text-primary">
                         {row.caption.text}
                       </span>

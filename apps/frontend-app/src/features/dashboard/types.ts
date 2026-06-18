@@ -13,6 +13,10 @@ export interface ContentRow {
   caption: { text: string; thumbnailUrl?: string };
   /** Posted on — ISO 8601 (rỗng nếu chưa lấy được). */
   postedAt?: string;
+  /** Ảnh trong bài (URL CDN) — phần tử đầu dùng làm thumbnail. */
+  images?: string[];
+  /** Link phát video (chỉ post video) — hiển thị/nhúng, không tải. */
+  videoUrl?: string;
   metrics: Metrics;
   status: CollectStatus;
 }

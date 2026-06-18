@@ -42,7 +42,7 @@ export function parsePost(data: unknown): ParsedPost {
     type: views !== null ? 'video' : 'text',
     postedAt: created ? new Date(created * 1000).toISOString() : undefined,
     title: extractTitle(data),
-    text: longestText(data),
+    text: extractText(data),
     images: collectImages(data),
     metrics,
   };
@@ -65,8 +65,11 @@ function commentCount(feedback?: Record<string, unknown>): number | null {
   return typeof total === 'number' ? total : null;
 }
 
-/** Nội dung bài viết = chuỗi `text` dài nhất trong cây (chính là body/caption). */
-function longestText(data: unknown): string | undefined {
+/**
+ * Nội dung bài viết = chuỗi `text` dài nhất trong cây.
+ * Caption bài viết thực tế dài hơn từng comment nên ổn định cho cả post lẫn video.
+ */
+function extractText(data: unknown): string | undefined {
   let best: string | undefined;
   for (const o of walkObjects(data)) {
     const t = o.text;

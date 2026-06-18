@@ -13,6 +13,7 @@ export interface PostPreviewData {
   timestamp: string;
   title?: string;
   caption: string;
+  thumbnailUrl?: string;
   links: string[];
   preview?: { domain: string; title: string };
 }
@@ -57,8 +58,11 @@ export function PostPreview({ data }: { data: PostPreviewData }) {
       {/* Text + links */}
       <div className="flex flex-col gap-3 px-4 py-2">
         {data.title ? <p className="font-medium text-md text-text-primary">{data.title}</p> : null}
+        {/* Nội dung bài viết (caption đầy đủ) */}
+        {data.caption ? (
+          <p className="whitespace-pre-wrap text-sm text-text-primary">{data.caption}</p>
+        ) : null}
         <div className="flex flex-col gap-0.5 text-sm">
-          <p className="text-text-primary">These are the links</p>
           {data.links.map((href) => (
             <a
               key={href}
@@ -74,15 +78,26 @@ export function PostPreview({ data }: { data: PostPreviewData }) {
 
         {data.preview ? (
           <div className="overflow-hidden rounded-lg border border-border">
-            <div
-              className="h-28 w-full bg-surface-alt"
-              aria-hidden
-            />
+            {data.thumbnailUrl ? (
+              // biome-ignore lint/performance/noImgElement: URL fbcdn có token ký/hết hạn, không hợp next/image.
+              <img
+                src={data.thumbnailUrl}
+                alt=""
+                className="h-40 w-full object-cover"
+              />
+            ) : (
+              <div
+                className="h-28 w-full bg-surface-alt"
+                aria-hidden
+              />
+            )}
             <div className="flex flex-col gap-0.5 border-border border-t p-3">
               <p className="truncate text-text-secondary text-xs">{data.preview.domain}</p>
-              <p className="truncate font-semibold text-sm text-text-primary">
-                {data.preview.title}
-              </p>
+              {data.preview.title ? (
+                <p className="truncate font-semibold text-sm text-text-primary">
+                  {data.preview.title}
+                </p>
+              ) : null}
             </div>
           </div>
         ) : null}

@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { MOCK_ROWS } from '@/features/dashboard/fixtures';
 import type { ContentRow } from '@/features/dashboard/types';
 
 interface ContentStore {
@@ -11,7 +10,7 @@ interface ContentStore {
 }
 
 export const useContentStore = create<ContentStore>((set) => ({
-  rows: MOCK_ROWS,
+  rows: [],
   prepend: (rows) => set((s) => ({ rows: [...rows, ...s.rows] })),
   patchRow: (id, patch) =>
     set((s) => ({ rows: s.rows.map((r) => (r.id === id ? { ...r, ...patch } : r)) })),
