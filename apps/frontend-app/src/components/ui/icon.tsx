@@ -135,6 +135,116 @@ export function GripVerticalIcon(props: IconProps) {
   );
 }
 
+export function PauseIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M7 5v14M17 5v14" />
+    </svg>
+  );
+}
+
+export function StopIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect
+        x="6"
+        y="6"
+        width="12"
+        height="12"
+        rx="2"
+      />
+    </svg>
+  );
+}
+
+export function RefreshIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5" />
+    </svg>
+  );
+}
+
+export function AlertTriangleIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 3 2 20h20L12 3zM12 9v5M12 17h.01" />
+    </svg>
+  );
+}
+
+export function ImageIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect
+        x="3"
+        y="3"
+        width="18"
+        height="18"
+        rx="2"
+      />
+      <circle
+        cx="9"
+        cy="9"
+        r="2"
+      />
+      <path d="m21 15-5-5L5 21" />
+    </svg>
+  );
+}
+
+export function BroadcastIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle
+        cx="12"
+        cy="12"
+        r="2"
+      />
+      <path d="M5 12a7 7 0 0 1 2-5M19 12a7 7 0 0 0-2-5M3 12a9.5 9.5 0 0 1 2.5-6M21 12a9.5 9.5 0 0 0-2.5-6" />
+    </svg>
+  );
+}
+
+export function VideoCamIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect
+        x="2"
+        y="6"
+        width="14"
+        height="12"
+        rx="2"
+      />
+      <path d="m22 8-6 4 6 4z" />
+    </svg>
+  );
+}
+
+export function TextIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4 6h16M4 12h16M4 18h10" />
+    </svg>
+  );
+}
+
+export function LinkIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" />
+    </svg>
+  );
+}
+
+export function LayersIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="m12 2 9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 17l9 5 9-5" />
+    </svg>
+  );
+}
+
 export function CheckIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

@@ -32,7 +32,7 @@ export function DetailDrawer({ row, open, onClose }: DetailDrawerProps) {
   const m = row.metrics;
 
   const metrics = [
-    { label: 'Likes', value: m.reactions },
+    { label: 'Likes', value: m.likes },
     { label: 'Save', value: m.saves },
     { label: 'Play', value: m.plays },
     { label: 'Shares', value: m.shares },

@@ -5,17 +5,24 @@ import { Avatar } from '@/components/ui/avatar';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
+  BroadcastIcon,
   CommentIcon,
+  ImageIcon,
+  LayersIcon,
+  LikeIcon,
+  LinkIcon,
   PlayIcon,
   SaveIcon,
   ShareIcon,
+  TextIcon,
   VerifiedIcon,
+  VideoCamIcon,
   ViewIcon,
 } from '@/components/ui/icon';
 import { DetailDrawer } from '@/features/content-detail';
-import type { CollectStatus, ContentRow, Metrics } from '@/features/dashboard/types';
+import type { CollectStatus, ContentRow, Metrics, PostType } from '@/features/dashboard/types';
 import { cn } from '@/lib/utils/cn';
-import { formatCompact } from '@/lib/utils/format';
+import { formatCompact, formatDate } from '@/lib/utils/format';
 
 const STATUS_META: Record<CollectStatus, { tone: BadgeTone; label: string }> = {
   success: { tone: 'success', label: 'Success' },
@@ -24,8 +31,17 @@ const STATUS_META: Record<CollectStatus, { tone: BadgeTone; label: string }> = {
   unsupported: { tone: 'neutral', label: 'Unsupported' },
 };
 
+const FORMAT_META: Record<PostType, { label: string; Icon: typeof CommentIcon }> = {
+  photo: { label: 'Photo', Icon: ImageIcon },
+  text: { label: 'Text', Icon: TextIcon },
+  link: { label: 'Link', Icon: LinkIcon },
+  livestream: { label: 'Livestream', Icon: BroadcastIcon },
+  video: { label: 'Video', Icon: VideoCamIcon },
+  carousel: { label: 'Carousel', Icon: LayersIcon },
+};
+
 const METRIC_COLUMNS: { key: keyof Metrics; label: string; Icon: typeof CommentIcon }[] = [
-  { key: 'reactions', label: 'Reactions', Icon: ViewIcon },
+  { key: 'likes', label: 'Likes', Icon: LikeIcon },
   { key: 'comments', label: 'Comments', Icon: CommentIcon },
   { key: 'shares', label: 'Shares', Icon: ShareIcon },
   { key: 'views', label: 'Views', Icon: ViewIcon },
@@ -33,8 +49,28 @@ const METRIC_COLUMNS: { key: keyof Metrics; label: string; Icon: typeof CommentI
   { key: 'plays', label: 'Play', Icon: PlayIcon },
 ];
 
-// offset (px) cho cột sticky bên trái
-const STICKY = { check: 0, no: 48, url: 104, author: 314, caption: 504 } as const;
+// Bề rộng cố định (px) cho từng cột — dùng cho <colgroup> (table-fixed) + tính offset sticky.
+const COL_W = {
+  check: 48,
+  no: 56,
+  url: 210,
+  author: 190,
+  caption: 260,
+  format: 140,
+  posted: 130,
+  metric: 120,
+  status: 140,
+} as const;
+
+// Offset (px) cột sticky bên trái — cộng dồn bề rộng, không hardcode để không lệch khi đổi width.
+const STICKY = {
+  check: 0,
+  no: COL_W.check,
+  url: COL_W.check + COL_W.no,
+  author: COL_W.check + COL_W.no + COL_W.url,
+  caption: COL_W.check + COL_W.no + COL_W.url + COL_W.author,
+} as const;
+
 const headBase = 'h-11 px-3 text-left align-middle text-xs font-medium text-text-secondary';
 const cellBase = 'h-[72px] px-3 align-middle text-sm text-text-primary';
 
@@ -62,7 +98,23 @@ export function ContentTable({ rows }: { rows: ContentRow[] }) {
   return (
     <>
       <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-xs">
-        <table className="w-full min-w-[1440px] border-collapse">
+        <table className="w-full min-w-[1440px] table-fixed border-collapse">
+          <colgroup>
+            <col style={{ width: COL_W.check }} />
+            <col style={{ width: COL_W.no }} />
+            <col style={{ width: COL_W.url }} />
+            <col style={{ width: COL_W.author }} />
+            <col style={{ width: COL_W.caption }} />
+            <col style={{ width: COL_W.format }} />
+            <col style={{ width: COL_W.posted }} />
+            {METRIC_COLUMNS.map((c) => (
+              <col
+                key={c.key}
+                style={{ width: COL_W.metric }}
+              />
+            ))}
+            <col style={{ width: COL_W.status }} />
+          </colgroup>
           <thead>
             <tr className="bg-surface-alt">
               <Th
@@ -102,6 +154,8 @@ export function ContentTable({ rows }: { rows: ContentRow[] }) {
               >
                 Caption
               </Th>
+              <th className={cn(headBase, 'w-[140px]')}>Format</th>
+              <th className={cn(headBase, 'w-[130px]')}>Posted on</th>
               {METRIC_COLUMNS.map((c) => (
                 <th
                   key={c.key}
@@ -191,6 +245,20 @@ export function ContentTable({ rows }: { rows: ContentRow[] }) {
                       </span>
                     </span>
                   </Td>
+                  <td className={cellBase}>
+                    {(() => {
+                      const fmt = FORMAT_META[row.type];
+                      return (
+                        <span className="inline-flex items-center gap-1.5">
+                          <fmt.Icon className="size-4 text-text-muted" />
+                          {fmt.label}
+                        </span>
+                      );
+                    })()}
+                  </td>
+                  <td className={cn(cellBase, 'text-text-secondary')}>
+                    {formatDate(row.postedAt)}
+                  </td>
                   {METRIC_COLUMNS.map((c) => (
                     <td
                       key={c.key}

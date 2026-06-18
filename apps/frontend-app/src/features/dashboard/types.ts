@@ -11,6 +11,8 @@ export interface ContentRow {
   url: string;
   author: { name: string; avatarUrl?: string; verified?: boolean };
   caption: { text: string; thumbnailUrl?: string };
+  /** Posted on — ISO 8601 (rỗng nếu chưa lấy được). */
+  postedAt?: string;
   metrics: Metrics;
   status: CollectStatus;
 }

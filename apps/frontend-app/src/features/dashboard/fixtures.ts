@@ -8,10 +8,10 @@ const CAPTION = 'POV bạn vừa nhận lương và đi siêu thị mua đồ ă
 
 function metrics(base: number, status: ContentRow['status']): ContentRow['metrics'] {
   if (status !== 'success') {
-    return { reactions: null, comments: null, shares: null, views: null, saves: null, plays: null };
+    return { likes: null, comments: null, shares: null, views: null, saves: null, plays: null };
   }
   return {
-    reactions: base + 200,
+    likes: base + 200,
     comments: base + 900,
     shares: base + 900,
     views: base + 900,
