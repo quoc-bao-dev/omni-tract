@@ -3,7 +3,7 @@
  * `null` = nền tảng không có / chưa lấy được chỉ số đó.
  */
 export interface Metrics {
-  reactions: number | null;
+  likes: number | null;
   comments: number | null;
   shares: number | null;
   views: number | null;

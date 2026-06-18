@@ -14,6 +14,8 @@ export interface Content {
   type: PostType;
   sourceUrl: string;
   title?: string;
+  /** Thời điểm nội dung được đăng (Posted on), ISO 8601. */
+  postedAt?: string;
   status: CollectStatus;
   snapshots: Snapshot[];
 }

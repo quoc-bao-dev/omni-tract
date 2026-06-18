@@ -29,6 +29,8 @@ export interface CollectResultOk {
   platform: Platform;
   type: PostType;
   title?: string;
+  /** Thời điểm nội dung được đăng (Posted on), ISO 8601. */
+  postedAt?: string;
   metrics: Metrics;
   /** Thời điểm server đo, ISO 8601 (UTC). */
   fetchedAt: string;
