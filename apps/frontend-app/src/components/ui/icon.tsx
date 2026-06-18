@@ -394,6 +394,22 @@ export function ViewIcon(props: IconProps) {
   );
 }
 
+/** Layout-right / mở panel chi tiết bên phải. */
+export function PanelRightIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect
+        x="3"
+        y="3"
+        width="18"
+        height="18"
+        rx="2"
+      />
+      <path d="M15 3v18" />
+    </svg>
+  );
+}
+
 export function SaveIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

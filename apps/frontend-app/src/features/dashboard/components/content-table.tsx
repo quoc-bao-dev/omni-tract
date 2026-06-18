@@ -11,6 +11,7 @@ import {
   LayersIcon,
   LikeIcon,
   LinkIcon,
+  PanelRightIcon,
   PlayIcon,
   SaveIcon,
   ShareIcon,
@@ -178,17 +179,9 @@ export function ContentTable({ rows }: { rows: ContentRow[] }) {
               return (
                 <tr
                   key={row.id}
-                  tabIndex={0}
-                  aria-label={`Xem chi tiết dòng ${i + 1}`}
-                  onClick={() => openRow(row)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      openRow(row);
-                    }
-                  }}
+                  onClick={() => toggle(row.id)}
                   className={cn(
-                    'cursor-pointer border-border border-t outline-none focus-visible:bg-surface-alt',
+                    'group cursor-pointer border-border border-t',
                     isSel ? 'bg-surface-alt' : 'hover:bg-surface-alt/60',
                   )}
                 >
@@ -244,6 +237,23 @@ export function ContentTable({ rows }: { rows: ContentRow[] }) {
                         {row.caption.text}
                       </span>
                     </span>
+                    {/* Mở chi tiết — hiện khi hover row (group), absolute trong ô caption. */}
+                    <button
+                      type="button"
+                      aria-label={`Mở chi tiết dòng ${i + 1}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openRow(row);
+                      }}
+                      className={cn(
+                        'absolute top-1/2 right-3 inline-flex -translate-y-1/2 items-center gap-1 rounded border border-border-subtle bg-surface px-1 py-1 font-medium text-ink text-xs shadow-[1px_4px_8px_rgba(0,0,0,0.08)] outline-none',
+                        'pointer-events-none opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100',
+                        'focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-info',
+                      )}
+                    >
+                      <PanelRightIcon className="size-4" />
+                      View
+                    </button>
                   </Td>
                   <td className={cellBase}>
                     {(() => {
