@@ -20,11 +20,11 @@ import {
   VideoCamIcon,
   ViewIcon,
 } from '@/components/ui/icon';
-import { DetailDrawer } from '@/features/content-detail';
 import type { CollectStatus, ContentRow, Metrics, PostType } from '@/features/dashboard/types';
 import { cn } from '@/lib/utils/cn';
 import { formatCompact, formatDate } from '@/lib/utils/format';
 import { type ColumnKey, useColumnStore } from '@/stores/column-store';
+import { useDetailStore } from '@/stores/detail-store';
 import { useSelectionStore } from '@/stores/selection-store';
 
 const STATUS_META: Record<CollectStatus, { tone: BadgeTone; label: string }> = {
@@ -95,18 +95,12 @@ export function ContentTable({
   const selectRange = useSelectionStore((s) => s.selectRange);
   const setSelection = useSelectionStore((s) => s.set);
   const clearSelection = useSelectionStore((s) => s.clear);
-  const [active, setActive] = useState<ContentRow | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const openDetail = useDetailStore((s) => s.open);
   // Dòng "neo" cho shift+click — chọn cả khoảng từ neo tới dòng vừa bấm.
   const anchorRef = useRef<string | null>(null);
   // Đã scroll ngang chưa → hiện shadow ở ranh giới cột đóng băng.
   const [scrolled, setScrolled] = useState(false);
   const visible = useColumnStore((s) => s.visible);
-
-  function openRow(row: ContentRow) {
-    setActive(row);
-    setDrawerOpen(true);
-  }
 
   /** Chọn dòng: shift+click → chọn cả khoảng tới neo; click thường → toggle + đặt neo mới. */
   function selectRow(e: { shiftKey: boolean }, id: string, index: number) {
@@ -158,275 +152,266 @@ export function ContentTable({
     (visible.status ? COL_W.status : 0);
 
   return (
-    <>
-      <div
-        className="h-full overflow-auto rounded-xl border border-border bg-surface shadow-xs"
-        onScroll={(e) => setScrolled(e.currentTarget.scrollLeft > 0)}
+    <div
+      className="h-full overflow-auto rounded-xl border border-border bg-surface shadow-xs"
+      onScroll={(e) => setScrolled(e.currentTarget.scrollLeft > 0)}
+    >
+      <table
+        className="w-full table-fixed border-collapse"
+        style={{ minWidth: totalWidth }}
       >
-        <table
-          className="w-full table-fixed border-collapse"
-          style={{ minWidth: totalWidth }}
-        >
-          <colgroup>
-            <col style={{ width: COL_W.check }} />
-            <col style={{ width: COL_W.no }} />
-            {visible.url ? <col style={{ width: COL_W.url }} /> : null}
-            {visible.author ? <col style={{ width: COL_W.author }} /> : null}
-            {visible.caption ? <col style={{ width: COL_W.caption }} /> : null}
-            {visible.format ? <col style={{ width: COL_W.format }} /> : null}
-            {visible.status ? <col style={{ width: COL_W.status }} /> : null}
-            {visible.postedOn ? <col style={{ width: COL_W.posted }} /> : null}
-            {visibleMetrics.map((c) => (
-              <col
-                key={c.key}
-                style={{ width: COL_W.metric }}
+        <colgroup>
+          <col style={{ width: COL_W.check }} />
+          <col style={{ width: COL_W.no }} />
+          {visible.url ? <col style={{ width: COL_W.url }} /> : null}
+          {visible.author ? <col style={{ width: COL_W.author }} /> : null}
+          {visible.caption ? <col style={{ width: COL_W.caption }} /> : null}
+          {visible.format ? <col style={{ width: COL_W.format }} /> : null}
+          {visible.status ? <col style={{ width: COL_W.status }} /> : null}
+          {visible.postedOn ? <col style={{ width: COL_W.posted }} /> : null}
+          {visibleMetrics.map((c) => (
+            <col
+              key={c.key}
+              style={{ width: COL_W.metric }}
+            />
+          ))}
+        </colgroup>
+        <thead>
+          <tr className="bg-surface-alt">
+            <Th
+              sticky={sticky.check}
+              divider={lastStickyKey === 'check'}
+              shadow={scrolled}
+              className="w-12"
+            >
+              <Checkbox
+                aria-label="Chọn tất cả"
+                checked={allChecked}
+                disabled={locked}
+                onChange={() =>
+                  allChecked ? clearSelection() : setSelection(rows.map((r) => r.id))
+                }
               />
+            </Th>
+            <Th
+              sticky={sticky.no}
+              divider={lastStickyKey === 'no'}
+              shadow={scrolled}
+              className="w-14"
+            >
+              No.
+            </Th>
+            {visible.url ? (
+              <Th
+                sticky={sticky.url}
+                divider={lastStickyKey === 'url'}
+                shadow={scrolled}
+                className="w-[210px]"
+              >
+                URL
+              </Th>
+            ) : null}
+            {visible.author ? (
+              <Th
+                sticky={sticky.author}
+                divider={lastStickyKey === 'author'}
+                shadow={scrolled}
+                className="w-[190px]"
+              >
+                Author/Page
+              </Th>
+            ) : null}
+            {visible.caption ? (
+              <Th
+                sticky={sticky.caption}
+                divider={lastStickyKey === 'caption'}
+                shadow={scrolled}
+                className="w-[260px]"
+              >
+                Caption
+              </Th>
+            ) : null}
+            {visible.format ? <th className={cn(headBase, 'w-[140px]')}>Format</th> : null}
+            {visible.status ? <th className={cn(headBase, 'w-[140px]')}>Status</th> : null}
+            {visible.postedOn ? <th className={cn(headBase, 'w-[130px]')}>Posted on</th> : null}
+            {visibleMetrics.map((c) => (
+              <th
+                key={c.key}
+                className={cn(headBase, 'w-[120px]')}
+              >
+                <span className="inline-flex items-center gap-1">
+                  <c.Icon className="size-3.5 text-text-muted" />
+                  {c.label}
+                </span>
+              </th>
             ))}
-          </colgroup>
-          <thead>
-            <tr className="bg-surface-alt">
-              <Th
-                sticky={sticky.check}
-                divider={lastStickyKey === 'check'}
-                shadow={scrolled}
-                className="w-12"
-              >
-                <Checkbox
-                  aria-label="Chọn tất cả"
-                  checked={allChecked}
-                  disabled={locked}
-                  onChange={() =>
-                    allChecked ? clearSelection() : setSelection(rows.map((r) => r.id))
-                  }
-                />
-              </Th>
-              <Th
-                sticky={sticky.no}
-                divider={lastStickyKey === 'no'}
-                shadow={scrolled}
-                className="w-14"
-              >
-                No.
-              </Th>
-              {visible.url ? (
-                <Th
-                  sticky={sticky.url}
-                  divider={lastStickyKey === 'url'}
-                  shadow={scrolled}
-                  className="w-[210px]"
-                >
-                  URL
-                </Th>
-              ) : null}
-              {visible.author ? (
-                <Th
-                  sticky={sticky.author}
-                  divider={lastStickyKey === 'author'}
-                  shadow={scrolled}
-                  className="w-[190px]"
-                >
-                  Author/Page
-                </Th>
-              ) : null}
-              {visible.caption ? (
-                <Th
-                  sticky={sticky.caption}
-                  divider={lastStickyKey === 'caption'}
-                  shadow={scrolled}
-                  className="w-[260px]"
-                >
-                  Caption
-                </Th>
-              ) : null}
-              {visible.format ? <th className={cn(headBase, 'w-[140px]')}>Format</th> : null}
-              {visible.status ? <th className={cn(headBase, 'w-[140px]')}>Status</th> : null}
-              {visible.postedOn ? <th className={cn(headBase, 'w-[130px]')}>Posted on</th> : null}
-              {visibleMetrics.map((c) => (
-                <th
-                  key={c.key}
-                  className={cn(headBase, 'w-[120px]')}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    <c.Icon className="size-3.5 text-text-muted" />
-                    {c.label}
-                  </span>
-                </th>
-              ))}
-            </tr>
-          </thead>
+          </tr>
+        </thead>
 
-          <tbody>
-            {rows.map((row, i) => {
-              const isSel = selected.has(row.id);
-              const status = STATUS_META[row.status];
-              return (
-                <tr
-                  key={row.id}
-                  onClick={locked ? undefined : (e) => selectRow(e, row.id, i)}
-                  className={cn(
-                    'group border-border border-t',
-                    locked ? 'cursor-default' : 'cursor-pointer',
-                    isSel ? 'bg-surface-alt' : 'hover:bg-surface-alt/60',
-                  )}
+        <tbody>
+          {rows.map((row, i) => {
+            const isSel = selected.has(row.id);
+            const status = STATUS_META[row.status];
+            return (
+              <tr
+                key={row.id}
+                onClick={locked ? undefined : (e) => selectRow(e, row.id, i)}
+                className={cn(
+                  'group border-border border-t',
+                  locked ? 'cursor-default' : 'cursor-pointer',
+                  isSel ? 'bg-surface-alt' : 'hover:bg-surface-alt/60',
+                )}
+              >
+                <Td
+                  sticky={sticky.check}
+                  divider={lastStickyKey === 'check'}
+                  shadow={scrolled}
+                  selected={isSel}
                 >
+                  <Checkbox
+                    aria-label={`Chọn dòng ${i + 1}`}
+                    checked={isSel}
+                    disabled={locked}
+                    onClick={(e) => {
+                      e.stopPropagation(); // tránh tr onClick chạy 2 lần
+                      selectRow(e, row.id, i);
+                    }}
+                    onChange={() => {}}
+                  />
+                </Td>
+                <Td
+                  sticky={sticky.no}
+                  divider={lastStickyKey === 'no'}
+                  shadow={scrolled}
+                  selected={isSel}
+                >
+                  <span className="text-text-secondary">{i + 1}</span>
+                </Td>
+                {visible.url ? (
                   <Td
-                    sticky={sticky.check}
-                    divider={lastStickyKey === 'check'}
+                    sticky={sticky.url}
+                    divider={lastStickyKey === 'url'}
                     shadow={scrolled}
                     selected={isSel}
                   >
-                    <Checkbox
-                      aria-label={`Chọn dòng ${i + 1}`}
-                      checked={isSel}
+                    <span className="line-clamp-2 max-w-[186px] text-text-secondary">
+                      {row.url}
+                    </span>
+                  </Td>
+                ) : null}
+                {visible.author ? (
+                  <Td
+                    sticky={sticky.author}
+                    divider={lastStickyKey === 'author'}
+                    shadow={scrolled}
+                    selected={isSel}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Avatar
+                        src={row.author.avatarUrl}
+                        alt={row.author.name}
+                        fallback={row.author.name.charAt(0)}
+                        size={32}
+                      />
+                      {row.author.profileUrl ? (
+                        <a
+                          href={row.author.profileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="truncate font-medium hover:underline"
+                        >
+                          {row.author.name}
+                        </a>
+                      ) : (
+                        <span className="truncate font-medium">{row.author.name}</span>
+                      )}
+                      {row.author.verified ? <VerifiedIcon className="shrink-0 text-info" /> : null}
+                    </span>
+                  </Td>
+                ) : null}
+                {visible.caption ? (
+                  <Td
+                    sticky={sticky.caption}
+                    divider={lastStickyKey === 'caption'}
+                    shadow={scrolled}
+                    selected={isSel}
+                  >
+                    <span className="flex items-center gap-2">
+                      {row.caption.thumbnailUrl ? (
+                        // biome-ignore lint/performance/noImgElement: URL fbcdn có token ký/hết hạn, không hợp next/image.
+                        <img
+                          src={row.caption.thumbnailUrl}
+                          alt=""
+                          className="size-9 shrink-0 rounded-md object-cover"
+                        />
+                      ) : (
+                        <span
+                          className="size-9 shrink-0 rounded-md bg-ink"
+                          aria-hidden
+                        />
+                      )}
+                      <span className="line-clamp-2 max-w-[200px] text-text-primary">
+                        {row.caption.text}
+                      </span>
+                    </span>
+                    {/* Mở chi tiết — hiện khi hover row (group), absolute trong ô caption. */}
+                    <button
+                      type="button"
+                      aria-label={`Mở chi tiết dòng ${i + 1}`}
                       disabled={locked}
                       onClick={(e) => {
-                        e.stopPropagation(); // tránh tr onClick chạy 2 lần
-                        selectRow(e, row.id, i);
+                        e.stopPropagation();
+                        openDetail(row);
                       }}
-                      onChange={() => {}}
-                    />
+                      className={cn(
+                        'absolute top-1/2 right-3 inline-flex -translate-y-1/2 items-center gap-1 rounded border border-border-subtle bg-surface px-1 py-1 font-medium text-ink text-xs shadow-[1px_4px_8px_rgba(0,0,0,0.08)] outline-none',
+                        'pointer-events-none opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100',
+                        'focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-info',
+                      )}
+                    >
+                      <PanelRightIcon className="size-4" />
+                      View
+                    </button>
                   </Td>
-                  <Td
-                    sticky={sticky.no}
-                    divider={lastStickyKey === 'no'}
-                    shadow={scrolled}
-                    selected={isSel}
-                  >
-                    <span className="text-text-secondary">{i + 1}</span>
-                  </Td>
-                  {visible.url ? (
-                    <Td
-                      sticky={sticky.url}
-                      divider={lastStickyKey === 'url'}
-                      shadow={scrolled}
-                      selected={isSel}
-                    >
-                      <span className="line-clamp-2 max-w-[186px] text-text-secondary">
-                        {row.url}
-                      </span>
-                    </Td>
-                  ) : null}
-                  {visible.author ? (
-                    <Td
-                      sticky={sticky.author}
-                      divider={lastStickyKey === 'author'}
-                      shadow={scrolled}
-                      selected={isSel}
-                    >
-                      <span className="flex items-center gap-2">
-                        <Avatar
-                          src={row.author.avatarUrl}
-                          alt={row.author.name}
-                          fallback={row.author.name.charAt(0)}
-                          size={32}
-                        />
-                        {row.author.profileUrl ? (
-                          <a
-                            href={row.author.profileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="truncate font-medium hover:underline"
-                          >
-                            {row.author.name}
-                          </a>
-                        ) : (
-                          <span className="truncate font-medium">{row.author.name}</span>
-                        )}
-                        {row.author.verified ? (
-                          <VerifiedIcon className="shrink-0 text-info" />
-                        ) : null}
-                      </span>
-                    </Td>
-                  ) : null}
-                  {visible.caption ? (
-                    <Td
-                      sticky={sticky.caption}
-                      divider={lastStickyKey === 'caption'}
-                      shadow={scrolled}
-                      selected={isSel}
-                    >
-                      <span className="flex items-center gap-2">
-                        {row.caption.thumbnailUrl ? (
-                          // biome-ignore lint/performance/noImgElement: URL fbcdn có token ký/hết hạn, không hợp next/image.
-                          <img
-                            src={row.caption.thumbnailUrl}
-                            alt=""
-                            className="size-9 shrink-0 rounded-md object-cover"
-                          />
-                        ) : (
-                          <span
-                            className="size-9 shrink-0 rounded-md bg-ink"
-                            aria-hidden
-                          />
-                        )}
-                        <span className="line-clamp-2 max-w-[200px] text-text-primary">
-                          {row.caption.text}
+                ) : null}
+                {visible.format ? (
+                  <td className={cellBase}>
+                    {(() => {
+                      const fmt = FORMAT_META[row.type];
+                      return (
+                        <span className="inline-flex items-center gap-1.5">
+                          <fmt.Icon className="size-4 text-text-muted" />
+                          {fmt.label}
                         </span>
-                      </span>
-                      {/* Mở chi tiết — hiện khi hover row (group), absolute trong ô caption. */}
-                      <button
-                        type="button"
-                        aria-label={`Mở chi tiết dòng ${i + 1}`}
-                        disabled={locked}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openRow(row);
-                        }}
-                        className={cn(
-                          'absolute top-1/2 right-3 inline-flex -translate-y-1/2 items-center gap-1 rounded border border-border-subtle bg-surface px-1 py-1 font-medium text-ink text-xs shadow-[1px_4px_8px_rgba(0,0,0,0.08)] outline-none',
-                          'pointer-events-none opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100',
-                          'focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-info',
-                        )}
-                      >
-                        <PanelRightIcon className="size-4" />
-                        View
-                      </button>
-                    </Td>
-                  ) : null}
-                  {visible.format ? (
-                    <td className={cellBase}>
-                      {(() => {
-                        const fmt = FORMAT_META[row.type];
-                        return (
-                          <span className="inline-flex items-center gap-1.5">
-                            <fmt.Icon className="size-4 text-text-muted" />
-                            {fmt.label}
-                          </span>
-                        );
-                      })()}
-                    </td>
-                  ) : null}
-                  {visible.status ? (
-                    <td className={cellBase}>
-                      <Badge tone={status.tone}>{status.label}</Badge>
-                    </td>
-                  ) : null}
-                  {visible.postedOn ? (
-                    <td className={cn(cellBase, 'text-text-secondary')}>
-                      {formatDate(row.postedAt)}
-                    </td>
-                  ) : null}
-                  {visibleMetrics.map((c) => (
-                    <td
-                      key={c.key}
-                      className={cellBase}
-                    >
-                      {formatCompact(row.metrics[c.key])}
-                    </td>
-                  ))}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <DetailDrawer
-        row={active}
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-      />
-    </>
+                      );
+                    })()}
+                  </td>
+                ) : null}
+                {visible.status ? (
+                  <td className={cellBase}>
+                    <Badge tone={status.tone}>{status.label}</Badge>
+                  </td>
+                ) : null}
+                {visible.postedOn ? (
+                  <td className={cn(cellBase, 'text-text-secondary')}>
+                    {formatDate(row.postedAt)}
+                  </td>
+                ) : null}
+                {visibleMetrics.map((c) => (
+                  <td
+                    key={c.key}
+                    className={cellBase}
+                  >
+                    {formatCompact(row.metrics[c.key])}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

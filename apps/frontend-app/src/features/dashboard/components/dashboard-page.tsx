@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
+import { DetailDrawer, FloatingVideo } from '@/features/content-detail';
 import { ContentSection } from '@/features/dashboard/components/content-section';
 import { Greeting } from '@/features/dashboard/components/greeting';
 import { StatsBar } from '@/features/dashboard/components/stats-bar';
@@ -36,17 +37,23 @@ export function DashboardPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-0 w-full max-w-[1440px] flex-1 flex-col gap-6 px-6 py-6">
-      {hasData ? (
-        <>
-          <StatsBar stats={stats} />
-          <ContentSection />
-        </>
-      ) : (
-        <div className="min-h-0 flex-1 overflow-auto">
-          <Greeting />
-        </div>
-      )}
-    </main>
+    <>
+      <main className="mx-auto flex min-h-0 w-full max-w-[1440px] flex-1 flex-col gap-6 px-6 py-6">
+        {hasData ? (
+          <>
+            <StatsBar stats={stats} />
+            <ContentSection />
+          </>
+        ) : (
+          <div className="min-h-0 flex-1 overflow-auto">
+            <Greeting />
+          </div>
+        )}
+      </main>
+
+      {/* Chi tiết + mini player video (state dùng chung qua useDetailStore). */}
+      <DetailDrawer />
+      <FloatingVideo />
+    </>
   );
 }

@@ -33,6 +33,10 @@
   --color-ink: #0d0d0d;
   --color-on-ink: #f5f5f5;
 
+  /* scrollbar (custom, toàn hệ thống) */
+  --color-scrollbar-thumb: rgba(0, 0, 0, 0.18);
+  --color-scrollbar-thumb-hover: rgba(0, 0, 0, 0.32);
+
   /* status / support */
   --color-success: #3fab53;
   --color-danger: #e5532e;
@@ -83,4 +87,55 @@ body {
   color: var(--color-text-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Custom scrollbar — dùng cho table & mọi vùng có scroll ===== */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-scrollbar-thumb) transparent;
+}
+
+/* WebKit (Chrome / Edge / Safari) */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-scrollbar-thumb);
+  /* viền trong suốt + clip → thumb mảnh, bo tròn, có khoảng đệm với mép */
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-scrollbar-thumb-hover);
+}
+
+/* Cuộn mượt khi nhảy tới (anchor / scrollTo) — tắt khi người dùng giảm chuyển động */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Tiện ích ẩn scrollbar khi cần (vd vùng cuộn ngầm) */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
