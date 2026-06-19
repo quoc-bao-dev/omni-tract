@@ -3,8 +3,10 @@
 import { useMemo } from 'react';
 import { ActiveFiltersBar, type FilterValue, useFilters } from '@/features/content-filter';
 import { ProcessingBar } from '@/features/content-import';
+import { ContentEmpty } from '@/features/dashboard/components/content-empty';
 import { ContentTable } from '@/features/dashboard/components/content-table';
 import type { ContentRow } from '@/features/dashboard/types';
+import { cn } from '@/lib/utils/cn';
 import { useContentStore } from '@/stores/content-store';
 import { useImportStore } from '@/stores/import-store';
 
@@ -23,22 +25,35 @@ function applyFilters(rows: ContentRow[], f: FilterValue): ContentRow[] {
 
 export function ContentSection() {
   const rows = useContentStore((s) => s.rows);
-  const { value, isActive } = useFilters();
+  const { value, isActive, clear } = useFilters();
   const importing = useImportStore((s) => s.status === 'loading');
   const filtered = useMemo(() => applyFilters(rows, value), [rows, value]);
 
+  // Khi đang import luôn hiện bảng (kèm row pending); ngoài import → rỗng thì hiện empty state.
+  const showEmpty = !importing && filtered.length === 0;
+
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       {importing ? (
         <ProcessingBar />
       ) : isActive ? (
         <ActiveFiltersBar resultCount={filtered.length} />
       ) : null}
 
-      {/* Khi đang import: hiện toàn bộ rows (pending ở đầu), khoá tương tác bảng. */}
-      <div className={importing ? 'pointer-events-none select-none' : undefined}>
-        <ContentTable rows={importing ? rows : filtered} />
-      </div>
+      {showEmpty ? (
+        <ContentEmpty
+          filtered={isActive}
+          onClear={clear}
+        />
+      ) : (
+        // Khi đang import: hiện toàn bộ rows (pending ở đầu). Khoá chọn/checkbox nhưng VẪN cho scroll.
+        <div className={cn('min-h-0 flex-1', importing && 'select-none')}>
+          <ContentTable
+            rows={importing ? rows : filtered}
+            locked={importing}
+          />
+        </div>
+      )}
     </div>
   );
 }

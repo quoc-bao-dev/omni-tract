@@ -1,7 +1,7 @@
-import type { CollectStatus } from '@omni/sdk';
+import type { CollectResult, CollectStatus } from '@omni/sdk';
 import { create } from 'zustand';
 import type { ContentRow } from '@/features/dashboard/types';
-import { collect } from '@/lib/api/collect';
+import { collectStream } from '@/lib/api/collect';
 import { contentRepository } from '@/lib/db/content-repository';
 import { parsePlatform } from '@/lib/url/platform';
 import { logger } from '@/lib/utils/logger';
@@ -19,13 +19,7 @@ interface ImportStore {
   stop: () => void;
 }
 
-let timer: ReturnType<typeof setInterval> | null = null;
 let controller: AbortController | null = null;
-
-function stopTimer() {
-  if (timer) clearInterval(timer);
-  timer = null;
-}
 
 export const useImportStore = create<ImportStore>((set, get) => ({
   status: 'idle',
@@ -77,61 +71,70 @@ export const useImportStore = create<ImportStore>((set, get) => ({
     });
     if (newRows.length) useContentStore.getState().prepend(newRows);
 
-    // 3) loading + progress giả lập (ramp tới 90% trong khi chờ)
-    set({ status: 'loading', total: urls.length, progress: 6, hasErrors: false });
-    stopTimer();
-    timer = setInterval(() => {
-      const p = get().progress;
-      if (p < 90) set({ progress: Math.min(90, p + Math.max(1, (90 - p) * 0.08)) });
-    }, 250);
+    // 3) loading — progress THẬT, tăng dần theo từng URL stream về
+    set({ status: 'loading', total: urls.length, progress: 0, hasErrors: false });
 
-    // 4) gọi API mock
+    // áp 1 kết quả lên UI ngay khi nhận được (streaming)
+    let errors = 0;
+    let done = 0;
+    const total = urls.length;
+    const remaining = new Set(pending.map((p) => p.url));
+
+    const applyResult = (r: CollectResult) => {
+      const match = pending.find((p) => p.url === r.sourceUrl);
+      if (!match) return;
+      remaining.delete(r.sourceUrl);
+
+      if (r.ok) {
+        useContentStore.getState().patchRow(match.id, {
+          status: 'success',
+          platform: r.platform,
+          type: r.type,
+          ...(r.author && {
+            author: {
+              name: r.author.name,
+              avatarUrl: r.author.profilePicture,
+              profileUrl: r.author.profileUrl,
+            },
+          }),
+          caption: { text: r.text ?? r.title ?? match.url, thumbnailUrl: r.images?.[0] },
+          postedAt: r.postedAt,
+          images: r.images,
+          videoUrl: r.videoUrl,
+          metrics: r.metrics,
+        });
+        // lưu IndexedDB (fire-and-forget) — không chặn UI; lỗi quota/DB chỉ log
+        contentRepository.appendFromCollect(r).catch((err) => {
+          logger.error('persist content failed', err);
+        });
+      } else {
+        errors++;
+        const status: CollectStatus = r.error === 'unsupported_platform' ? 'unsupported' : 'failed';
+        useContentStore.getState().patchRow(match.id, { status });
+      }
+
+      done++;
+      set({ progress: Math.min(99, Math.round((done / total) * 100)) });
+    };
+
+    // 4) gọi API streaming
     controller = new AbortController();
     try {
-      const { results } = await collect(urls, controller.signal);
-      let errors = 0;
-      for (const r of results) {
-        const match = pending.find((p) => p.url === r.sourceUrl);
-        if (!match) continue;
-        if (r.ok) {
-          useContentStore.getState().patchRow(match.id, {
-            status: 'success',
-            platform: r.platform,
-            type: r.type,
-            ...(r.author && {
-              author: {
-                name: r.author.name,
-                avatarUrl: r.author.profilePicture,
-                profileUrl: r.author.profileUrl,
-              },
-            }),
-            caption: { text: r.text ?? r.title ?? match.url, thumbnailUrl: r.images?.[0] },
-            postedAt: r.postedAt,
-            images: r.images,
-            videoUrl: r.videoUrl,
-            metrics: r.metrics,
-          });
-          // lưu IndexedDB: dedup theo URL → append snapshot vào record cũ (không tạo mới)
-          try {
-            await contentRepository.appendFromCollect(r);
-          } catch (err) {
-            // lỗi quota/DB không làm hỏng import — UI đã cập nhật
-            logger.error('persist content failed', err);
-          }
-        } else {
-          errors++;
-          const status: CollectStatus =
-            r.error === 'unsupported_platform' ? 'unsupported' : 'failed';
-          useContentStore.getState().patchRow(match.id, { status });
-        }
-      }
+      await collectStream(
+        urls,
+        (event) => {
+          if (event.type === 'result') applyResult(event.result);
+        },
+        controller.signal,
+      );
       set({ hasErrors: errors > 0 });
     } catch {
-      // lỗi mạng/abort → đánh dấu toàn bộ pending là failed
-      for (const p of pending) useContentStore.getState().patchRow(p.id, { status: 'failed' });
+      // lỗi mạng/abort → đánh dấu các URL CHƯA có kết quả là failed (giữ row đã xong)
+      for (const p of pending) {
+        if (remaining.has(p.url)) useContentStore.getState().patchRow(p.id, { status: 'failed' });
+      }
       set({ hasErrors: true });
     } finally {
-      stopTimer();
       set({ status: 'done', progress: 100 });
       setTimeout(() => {
         if (get().status === 'done') set({ status: 'idle', progress: 0, total: 0 });
@@ -141,7 +144,6 @@ export const useImportStore = create<ImportStore>((set, get) => ({
 
   stop() {
     controller?.abort();
-    stopTimer();
     set({ status: 'idle', progress: 0, total: 0 });
   },
 }));

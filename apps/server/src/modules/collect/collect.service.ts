@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CollectResponse, CollectResult } from '@omni/sdk';
-import { CRAWL_CONCURRENCY, mapWithConcurrency } from '../../infra/common/concurrency';
+import { CollectResponse, CollectResult, CollectStreamEvent } from '@omni/sdk';
+import {
+  CRAWL_CONCURRENCY,
+  mapWithConcurrency,
+  streamWithConcurrency,
+} from '../../infra/common/concurrency';
 import { parsePlatform } from '../../infra/common/url/parse-platform';
 import { CrawlerRegistry } from '../../infra/crawler/crawler.registry';
 
@@ -17,6 +21,21 @@ export class CollectService {
       this.collectOne(url),
     );
     return { results };
+  }
+
+  /**
+   * Streaming: yield từng event ngay khi mỗi URL crawl xong (concurrency-limited).
+   * Controller serialize ra NDJSON → client cập nhật UI tức thì, không chờ cả batch.
+   */
+  async *collectStream(urls: string[]): AsyncGenerator<CollectStreamEvent> {
+    const unique = [...new Set(urls.map((u) => u.trim()).filter(Boolean))];
+    yield { type: 'start', total: unique.length };
+    for await (const result of streamWithConcurrency(unique, CRAWL_CONCURRENCY, (url) =>
+      this.collectOne(url),
+    )) {
+      yield { type: 'result', result };
+    }
+    yield { type: 'done' };
   }
 
   private async collectOne(sourceUrl: string): Promise<CollectResult> {

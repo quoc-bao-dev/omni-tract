@@ -26,7 +26,7 @@ export function DashboardPage() {
   // Chờ đọc xong IndexedDB rồi mới hiện UI (tránh nháy Greeting → bảng).
   if (!hydrated) {
     return (
-      <main className="mx-auto flex w-full max-w-[1440px] items-center justify-center px-6 py-24">
+      <main className="mx-auto flex w-full max-w-[1440px] flex-1 items-center justify-center px-6 py-24">
         <div className="flex flex-col items-center gap-3 text-text-muted">
           <span className="size-8 animate-spin rounded-full border-2 border-border border-t-ink" />
           <p className="text-sm">Đang tải dữ liệu...</p>
@@ -36,14 +36,16 @@ export function DashboardPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] space-y-6 px-6 py-6">
+    <main className="mx-auto flex min-h-0 w-full max-w-[1440px] flex-1 flex-col gap-6 px-6 py-6">
       {hasData ? (
         <>
           <StatsBar stats={stats} />
           <ContentSection />
         </>
       ) : (
-        <Greeting />
+        <div className="min-h-0 flex-1 overflow-auto">
+          <Greeting />
+        </div>
       )}
     </main>
   );

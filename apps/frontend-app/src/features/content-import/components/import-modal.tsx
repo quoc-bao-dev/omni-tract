@@ -71,7 +71,7 @@ export function ImportModal({ open, onClose, onImport }: ImportModalProps) {
           onChange={(e) => setText(e.target.value)}
           placeholder={PLACEHOLDER}
           spellCheck={false}
-          className="flex-1 resize-none rounded-xl bg-input px-4 py-3 font-medium text-ink text-sm shadow-input placeholder:text-text-muted focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
+          className="flex-1 resize-none rounded-xl bg-input px-4 py-3 font-medium text-ink text-sm shadow-input placeholder:text-text-muted focus-visible:outline-2 focus-visible:outline-ink focus-visible:-outline-offset-2"
         />
       </div>
     </Modal>

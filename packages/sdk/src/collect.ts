@@ -67,3 +67,13 @@ export type CollectResult = CollectResultOk | CollectResultError;
 export interface CollectResponse {
   results: CollectResult[];
 }
+
+/**
+ * Sự kiện streaming khi collect (NDJSON: mỗi dòng = 1 event JSON).
+ * Server đẩy `result` ngay khi từng URL crawl xong → UI cập nhật tức thì,
+ * không chờ toàn bộ batch hoàn tất.
+ */
+export type CollectStreamEvent =
+  | { type: 'start'; total: number }
+  | { type: 'result'; result: CollectResult }
+  | { type: 'done' };

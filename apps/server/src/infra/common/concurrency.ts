@@ -21,3 +21,34 @@ export async function mapWithConcurrency<T, R>(
   await Promise.all(workers);
   return results;
 }
+
+/**
+ * Như `mapWithConcurrency` nhưng **yield kết quả ngay khi mỗi item xong** (không giữ thứ tự),
+ * tối đa `limit` item chạy song song. Dùng cho streaming: đẩy từng kết quả về client tức thì.
+ */
+export async function* streamWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>,
+): AsyncGenerator<R> {
+  const inflight = new Map<number, Promise<{ key: number; value: R }>>();
+  let cursor = 0;
+
+  const start = () => {
+    if (cursor >= items.length) return;
+    const i = cursor++;
+    inflight.set(
+      i,
+      fn(items[i], i).then((value) => ({ key: i, value })),
+    );
+  };
+
+  for (let k = 0; k < Math.min(limit, items.length); k++) start();
+
+  while (inflight.size > 0) {
+    const { key, value } = await Promise.race(inflight.values());
+    inflight.delete(key);
+    yield value;
+    start();
+  }
+}

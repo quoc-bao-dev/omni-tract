@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -75,18 +75,30 @@ const COL_W = {
   status: 140,
 } as const;
 
-const headBase = 'h-11 px-3 text-left align-middle text-xs font-medium text-text-secondary';
+// sticky top-0 → header đóng băng khi cuộn dọc; bg đục để rows không lộ qua.
+const headBase =
+  'sticky top-0 z-20 h-11 bg-surface-alt px-3 text-left align-middle text-xs font-medium text-text-secondary';
 const cellBase = 'h-[72px] px-3 align-middle text-sm text-text-primary';
 
 type StickyKey = 'check' | 'no' | 'url' | 'author' | 'caption';
 
-export function ContentTable({ rows }: { rows: ContentRow[] }) {
+export function ContentTable({
+  rows,
+  locked = false,
+}: {
+  rows: ContentRow[];
+  /** Khoá chọn dòng/checkbox/mở chi tiết (đang import) — KHÔNG khoá scroll. */
+  locked?: boolean;
+}) {
   const selected = useSelectionStore((s) => s.selected);
   const toggleSelect = useSelectionStore((s) => s.toggle);
+  const selectRange = useSelectionStore((s) => s.selectRange);
   const setSelection = useSelectionStore((s) => s.set);
   const clearSelection = useSelectionStore((s) => s.clear);
   const [active, setActive] = useState<ContentRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Dòng "neo" cho shift+click — chọn cả khoảng từ neo tới dòng vừa bấm.
+  const anchorRef = useRef<string | null>(null);
   // Đã scroll ngang chưa → hiện shadow ở ranh giới cột đóng băng.
   const [scrolled, setScrolled] = useState(false);
   const visible = useColumnStore((s) => s.visible);
@@ -94,6 +106,21 @@ export function ContentTable({ rows }: { rows: ContentRow[] }) {
   function openRow(row: ContentRow) {
     setActive(row);
     setDrawerOpen(true);
+  }
+
+  /** Chọn dòng: shift+click → chọn cả khoảng tới neo; click thường → toggle + đặt neo mới. */
+  function selectRow(e: { shiftKey: boolean }, id: string, index: number) {
+    if (e.shiftKey && anchorRef.current !== null) {
+      const anchorIdx = rows.findIndex((r) => r.id === anchorRef.current);
+      if (anchorIdx !== -1) {
+        const [a, b] = anchorIdx <= index ? [anchorIdx, index] : [index, anchorIdx];
+        selectRange(rows.slice(a, b + 1).map((r) => r.id));
+        window.getSelection()?.removeAllRanges(); // tránh bôi đen text khi giữ shift
+        return;
+      }
+    }
+    toggleSelect(id);
+    anchorRef.current = id;
   }
 
   const allChecked = rows.length > 0 && selected.size === rows.length;
@@ -133,7 +160,7 @@ export function ContentTable({ rows }: { rows: ContentRow[] }) {
   return (
     <>
       <div
-        className="overflow-x-auto rounded-xl border border-border bg-surface shadow-xs"
+        className="h-full overflow-auto rounded-xl border border-border bg-surface shadow-xs"
         onScroll={(e) => setScrolled(e.currentTarget.scrollLeft > 0)}
       >
         <table
@@ -167,6 +194,7 @@ export function ContentTable({ rows }: { rows: ContentRow[] }) {
                 <Checkbox
                   aria-label="Chọn tất cả"
                   checked={allChecked}
+                  disabled={locked}
                   onChange={() =>
                     allChecked ? clearSelection() : setSelection(rows.map((r) => r.id))
                   }
@@ -234,9 +262,10 @@ export function ContentTable({ rows }: { rows: ContentRow[] }) {
               return (
                 <tr
                   key={row.id}
-                  onClick={() => toggleSelect(row.id)}
+                  onClick={locked ? undefined : (e) => selectRow(e, row.id, i)}
                   className={cn(
-                    'group cursor-pointer border-border border-t',
+                    'group border-border border-t',
+                    locked ? 'cursor-default' : 'cursor-pointer',
                     isSel ? 'bg-surface-alt' : 'hover:bg-surface-alt/60',
                   )}
                 >
@@ -249,8 +278,12 @@ export function ContentTable({ rows }: { rows: ContentRow[] }) {
                     <Checkbox
                       aria-label={`Chọn dòng ${i + 1}`}
                       checked={isSel}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={() => toggleSelect(row.id)}
+                      disabled={locked}
+                      onClick={(e) => {
+                        e.stopPropagation(); // tránh tr onClick chạy 2 lần
+                        selectRow(e, row.id, i);
+                      }}
+                      onChange={() => {}}
                     />
                   </Td>
                   <Td
@@ -335,6 +368,7 @@ export function ContentTable({ rows }: { rows: ContentRow[] }) {
                       <button
                         type="button"
                         aria-label={`Mở chi tiết dòng ${i + 1}`}
+                        disabled={locked}
                         onClick={(e) => {
                           e.stopPropagation();
                           openRow(row);
@@ -417,7 +451,8 @@ function Th({
     <th
       className={cn(
         headBase,
-        sticky !== undefined && 'sticky z-20 bg-surface-alt',
+        // ô vừa đóng băng cột (trái) vừa đóng băng header (trên) → góc, z cao nhất.
+        sticky !== undefined && 'z-30',
         divider && shadow && BOUNDARY_SHADOW,
         className,
       )}

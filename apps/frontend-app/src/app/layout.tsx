@@ -22,7 +22,7 @@ export default function RootLayout({
       lang="vi"
       className={`${inter.variable} h-full`}
     >
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex h-full flex-col overflow-hidden">{children}</body>
     </html>
   );
 }
