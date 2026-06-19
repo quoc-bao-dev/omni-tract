@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { ActiveFiltersBar, type FilterValue, useFilters } from '@/features/content-filter';
+import { isWithinPostedRange } from '@/features/content-filter/date-range';
 import { ProcessingBar } from '@/features/content-import';
 import { ContentEmpty } from '@/features/dashboard/components/content-empty';
 import { ContentTable } from '@/features/dashboard/components/content-table';
@@ -12,13 +13,14 @@ import { useImportStore } from '@/stores/import-store';
 
 /**
  * Áp filter (client) lên rows + đổi giữa ActiveFiltersBar ↔ ProcessingBar.
- * platform/postType/status map trực tiếp (cùng enum @omni/sdk); postedOn — TODO.
+ * platform/postType/status map trực tiếp (cùng enum @omni/sdk); postedOn lọc theo range ngày.
  */
 function applyFilters(rows: ContentRow[], f: FilterValue): ContentRow[] {
   return rows.filter((row) => {
     if (f.platforms.length > 0 && !f.platforms.includes(row.platform)) return false;
     if (f.postTypes.length > 0 && !f.postTypes.includes(row.type)) return false;
     if (f.statuses.length > 0 && !f.statuses.includes(row.status)) return false;
+    if (!isWithinPostedRange(row.postedAt, f.postedOn)) return false;
     return true;
   });
 }

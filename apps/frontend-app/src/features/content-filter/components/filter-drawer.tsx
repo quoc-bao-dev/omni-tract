@@ -2,8 +2,8 @@
 
 import { type ReactNode, useEffect, useState } from 'react';
 import { Drawer } from '@/components/ui/drawer';
-import { CalendarIcon } from '@/components/ui/icon';
 import { MultiSelect } from '@/components/ui/multi-select';
+import { DateRangePicker } from '@/features/content-filter/components/date-range-picker';
 import {
   EMPTY_FILTER,
   type FilterValue,
@@ -63,17 +63,10 @@ export function FilterDrawer({ open, onClose }: FilterDrawerProps) {
     >
       <div className="flex flex-col gap-4">
         <Field label="Posted on">
-          <div className="flex h-10 w-full items-center gap-2 rounded-md bg-input px-3 shadow-input">
-            <input
-              type="text"
-              aria-label="Posted on"
-              value={draft.postedOn}
-              onChange={(e) => patch({ postedOn: e.target.value })}
-              placeholder="dd/mm/yyyy - dd/mm/yyyy"
-              className="flex-1 bg-transparent font-medium text-ink text-sm placeholder:text-placeholder focus:outline-none"
-            />
-            <CalendarIcon className="size-5 shrink-0 text-text-secondary" />
-          </div>
+          <DateRangePicker
+            value={draft.postedOn}
+            onChange={(v) => patch({ postedOn: v })}
+          />
         </Field>
 
         <Field label="Platform type">
