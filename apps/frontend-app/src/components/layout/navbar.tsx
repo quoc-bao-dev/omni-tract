@@ -1,6 +1,8 @@
 import Image from 'next/image';
+import { DeleteButton } from '@/features/content-delete';
 import { FilterButton } from '@/features/content-filter';
 import { ImportButton } from '@/features/content-import';
+import { RefreshButton } from '@/features/content-refresh';
 import { ExportButton } from '@/features/data-export';
 import { SettingsButton } from '@/features/settings';
 
@@ -20,6 +22,8 @@ export function Navbar() {
           <span className="font-semibold text-lg text-text-primary tracking-tight">OmniTract</span>
         </div>
 
+        <DeleteButton />
+        <RefreshButton />
         <FilterButton />
         <SettingsButton />
         <ExportButton />

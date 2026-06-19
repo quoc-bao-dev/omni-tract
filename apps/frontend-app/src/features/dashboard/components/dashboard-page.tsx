@@ -1,17 +1,22 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ContentSection } from '@/features/dashboard/components/content-section';
 import { Greeting } from '@/features/dashboard/components/greeting';
 import { StatsBar } from '@/features/dashboard/components/stats-bar';
 import { useHydrateContent } from '@/features/dashboard/hooks/use-content-list';
 import { deriveStats } from '@/features/dashboard/stats';
+import { useColumnStore } from '@/stores/column-store';
 import { useContentStore } from '@/stores/content-store';
 import { useImportStore } from '@/stores/import-store';
 
 /** Dashboard (Figma 108:5749): rỗng → Greeting; có dữ liệu → stats + bảng. */
 export function DashboardPage() {
   useHydrateContent(); // nạp dữ liệu đã lưu từ IndexedDB (1 lần)
+  // Nạp cấu hình ẩn/hiện cột từ localStorage sau khi mount (tránh đọc trong initializer → lệch SSR).
+  useEffect(() => {
+    useColumnStore.getState().hydrate();
+  }, []);
   const hydrated = useContentStore((s) => s.hydrated);
   const rows = useContentStore((s) => s.rows);
   const importing = useImportStore((s) => s.status === 'loading');

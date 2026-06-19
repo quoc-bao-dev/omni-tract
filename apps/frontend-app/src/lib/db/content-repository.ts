@@ -25,6 +25,36 @@ export const contentRepository = {
   },
 
   /**
+   * Xoá record theo danh sách `sourceUrl` (khớp với `ContentRow.url`).
+   * Trả về các record đã xoá để hỗ trợ Undo (khôi phục lại y nguyên).
+   */
+  async removeBySourceUrls(sourceUrls: string[]): Promise<StoredContent[]> {
+    const db = await getDB();
+    const tx = db.transaction(STORE_CONTENT, 'readwrite');
+    const store = tx.objectStore(STORE_CONTENT);
+    const index = store.index(IDX_SOURCE_URL);
+    const removed: StoredContent[] = [];
+    for (const url of sourceUrls) {
+      const rec = await index.get(url);
+      if (rec) {
+        removed.push(rec);
+        await store.delete(rec.contentId);
+      }
+    }
+    await tx.done;
+    return removed;
+  },
+
+  /** Ghi lại các record (Undo xoá) — put nguyên trạng. */
+  async restore(records: StoredContent[]): Promise<void> {
+    if (records.length === 0) return;
+    const db = await getDB();
+    const tx = db.transaction(STORE_CONTENT, 'readwrite');
+    for (const rec of records) await tx.objectStore(STORE_CONTENT).put(rec);
+    await tx.done;
+  },
+
+  /**
    * Lưu kết quả thu thập. **Dedup theo URL**: nếu đã có record (khớp `contentId`
    * hoặc `sourceUrl`) → APPEND 1 snapshot vào record cũ + làm tươi trường hiển thị
    * (KHÔNG tạo record mới). Nếu chưa có → tạo record với snapshot đầu tiên.

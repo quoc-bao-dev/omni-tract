@@ -9,6 +9,8 @@ import {
 
 export interface PostPreviewData {
   author: string;
+  avatarUrl?: string;
+  profileUrl?: string;
   community?: string;
   timestamp: string;
   title?: string;
@@ -25,12 +27,24 @@ export function PostPreview({ data }: { data: PostPreviewData }) {
       {/* Title row */}
       <div className="flex items-start gap-2 px-4 pt-3">
         <Avatar
+          src={data.avatarUrl}
           fallback={data.author.charAt(0)}
           size={32}
         />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <div className="flex items-center gap-1 text-sm">
-            <span className="truncate font-semibold text-text-primary">{data.author}</span>
+            {data.profileUrl ? (
+              <a
+                href={data.profileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="truncate font-semibold text-text-primary hover:underline"
+              >
+                {data.author}
+              </a>
+            ) : (
+              <span className="truncate font-semibold text-text-primary">{data.author}</span>
+            )}
             {data.community ? (
               <>
                 <ChevronRightIcon className="size-4 shrink-0 text-text-muted" />

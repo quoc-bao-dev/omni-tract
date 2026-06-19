@@ -99,7 +99,7 @@ export function Drawer({
         <div className="flex-1 overflow-y-auto p-6">{children}</div>
 
         {footer ? (
-          <div className="shrink-0 border-border-subtle border-t bg-surface-alt px-6 py-4">
+          <div className="flex shrink-0 gap-2 border-border-subtle border-t bg-surface-alt px-6 py-4">
             {footer}
           </div>
         ) : null}

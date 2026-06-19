@@ -94,6 +94,8 @@ export function DetailDrawer({ row, open, onClose }: DetailDrawerProps) {
         <PostPreview
           data={{
             author: row.author.name,
+            avatarUrl: row.author.avatarUrl,
+            profileUrl: row.author.profileUrl,
             timestamp: row.postedAt ? formatDate(row.postedAt) : '',
             caption: row.caption.text,
             thumbnailUrl: row.caption.thumbnailUrl,

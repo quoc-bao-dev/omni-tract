@@ -1,53 +1,28 @@
 'use client';
 
 import type { ExportFormat } from '@omni/sdk';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Drawer } from '@/components/ui/drawer';
 import { GripVerticalIcon } from '@/components/ui/icon';
 import { RadioGroup } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
-
-type ColumnKey =
-  | 'url'
-  | 'author'
-  | 'caption'
-  | 'format'
-  | 'postedOn'
-  | 'likes'
-  | 'comments'
-  | 'shares'
-  | 'views'
-  | 'save'
-  | 'play'
-  | 'status';
-
-interface ColumnSetting {
-  key: ColumnKey;
-  label: string;
-  enabled: boolean;
-}
+import {
+  COLUMN_META,
+  type ColumnKey,
+  type ColumnVisibility,
+  useColumnStore,
+} from '@/stores/column-store';
+import { useToastStore } from '@/stores/toast-store';
 
 export type { ExportFormat };
 
 export interface SettingsValue {
-  columns: ColumnSetting[];
+  columns: ColumnVisibility;
   exportFormat: ExportFormat;
 }
 
-const DEFAULT_COLUMNS: ColumnSetting[] = [
-  { key: 'url', label: 'URL', enabled: true },
-  { key: 'author', label: 'Author/Page', enabled: true },
-  { key: 'caption', label: 'Caption', enabled: true },
-  { key: 'format', label: 'Format', enabled: true },
-  { key: 'postedOn', label: 'Posted on', enabled: true },
-  { key: 'likes', label: 'Likes', enabled: true },
-  { key: 'comments', label: 'Comments', enabled: true },
-  { key: 'shares', label: 'Shares', enabled: true },
-  { key: 'views', label: 'Views', enabled: true },
-  { key: 'save', label: 'Save', enabled: true },
-  { key: 'play', label: 'Play', enabled: false },
-  { key: 'status', label: 'Status', enabled: true },
-];
+/** Số cột tối thiểu phải hiển thị (không cho ẩn hết). */
+const MIN_VISIBLE_COLUMNS = 4;
 
 const EXPORT_OPTIONS: { value: ExportFormat; label: string }[] = [
   { value: 'xlsx', label: '.xlsx' },
@@ -61,17 +36,38 @@ interface SettingsDrawerProps {
   onSave?: (value: SettingsValue) => void;
 }
 
-/** Drawer Settings (Figma 85:2625): Columns (toggle) + Export file as (radio). */
+/** Drawer Settings (Figma 85:2625): Columns (toggle ẩn/hiện) + Export file as (radio). */
 export function SettingsDrawer({ open, onClose, onSave }: SettingsDrawerProps) {
-  const [columns, setColumns] = useState<ColumnSetting[]>(DEFAULT_COLUMNS);
+  const visible = useColumnStore((s) => s.visible);
+  const setVisible = useColumnStore((s) => s.setVisible);
+
+  // Draft cục bộ — chỉ áp dụng khi bấm Save. Đồng bộ lại từ store mỗi lần mở.
+  const [draft, setDraft] = useState<ColumnVisibility>(visible);
   const [exportFormat, setExportFormat] = useState<ExportFormat>('xlsx');
+  useEffect(() => {
+    if (open) setDraft(visible);
+  }, [open, visible]);
 
   function toggleColumn(key: ColumnKey) {
-    setColumns((prev) => prev.map((c) => (c.key === key ? { ...c, enabled: !c.enabled } : c)));
+    // Chặn ẩn quá nhiều: phải còn ít nhất MIN_VISIBLE_COLUMNS cột.
+    if (draft[key]) {
+      const remaining = Object.values(draft).filter(Boolean).length - 1;
+      if (remaining < MIN_VISIBLE_COLUMNS) {
+        useToastStore
+          .getState()
+          .show(
+            { tone: 'error', message: `Phải hiển thị ít nhất ${MIN_VISIBLE_COLUMNS} cột` },
+            3000,
+          );
+        return;
+      }
+    }
+    setDraft((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
   function handleSave() {
-    onSave?.({ columns, exportFormat });
+    setVisible(draft);
+    onSave?.({ columns: draft, exportFormat });
     onClose();
   }
 
@@ -93,11 +89,11 @@ export function SettingsDrawer({ open, onClose, onSave }: SettingsDrawerProps) {
       }
     >
       <div className="flex flex-col gap-4">
-        {/* Columns */}
+        {/* Columns — bật/tắt hiển thị cột trên bảng */}
         <section className="rounded-xl border border-border-overlay bg-surface p-4">
           <h3 className="font-semibold text-ink text-md">Columns</h3>
           <ul className="mt-4 flex flex-col gap-2">
-            {columns.map((col) => (
+            {COLUMN_META.map((col) => (
               <li
                 key={col.key}
                 className="flex items-center gap-3 rounded-xl border border-border-overlay bg-surface-alt p-3"
@@ -109,7 +105,7 @@ export function SettingsDrawer({ open, onClose, onSave }: SettingsDrawerProps) {
                 <span className="flex-1 font-medium text-ink text-md">{col.label}</span>
                 <Switch
                   aria-label={`Cột ${col.label}`}
-                  checked={col.enabled}
+                  checked={draft[col.key]}
                   onChange={() => toggleColumn(col.key)}
                 />
               </li>
