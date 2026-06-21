@@ -23,6 +23,7 @@ export class FacebookCrawler implements PlatformCrawler {
     const parsed = parsePost(permalink);
 
     let { type, videoUrl, postedAt } = parsed;
+    const metrics = parsed.metrics;
     const videoId = extractVideoTargetId(permalink);
     if (videoId) {
       type = 'video';
@@ -30,6 +31,9 @@ export class FacebookCrawler implements PlatformCrawler {
         const video = await fetchVideoMeta(videoId); // bước 3
         videoUrl = video.videoUrl ?? videoUrl;
         postedAt = postedAt ?? video.postedAt;
+        // View/play lấy từ video_home (chunk @defer) — chuẩn hơn permalink (thường null).
+        if (video.views != null) metrics.views = video.views;
+        if (video.plays != null) metrics.plays = video.plays;
       } catch {
         // video query lỗi → vẫn trả meta + engagement đã lấy từ permalink
       }
@@ -37,6 +41,8 @@ export class FacebookCrawler implements PlatformCrawler {
 
     return toCollectResultOk({
       sourceUrl,
+      postId: ref.postId,
+      authorId: ref.actorId,
       platform: 'facebook',
       type,
       title: parsed.title,
@@ -45,7 +51,7 @@ export class FacebookCrawler implements PlatformCrawler {
       images: parsed.images,
       postedAt,
       videoUrl,
-      metrics: parsed.metrics,
+      metrics,
     });
   }
 }

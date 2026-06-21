@@ -75,6 +75,8 @@ export const contentRepository = {
       ? {
           // giữ contentId & lịch sử snapshots của record cũ
           ...existing,
+          postId: result.postId ?? existing.postId,
+          authorId: result.authorId ?? existing.authorId,
           platform: result.platform,
           type: result.type,
           title: result.title ?? existing.title,
@@ -89,6 +91,8 @@ export const contentRepository = {
         }
       : {
           contentId: result.contentId,
+          postId: result.postId,
+          authorId: result.authorId,
           platform: result.platform,
           type: result.type,
           sourceUrl: result.sourceUrl,

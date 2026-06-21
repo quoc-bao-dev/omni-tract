@@ -8,8 +8,12 @@ import type { CollectStatus } from './status.js';
  * Mỗi lần fetch thủ công → append một phần tử vào `snapshots` (không ghi đè).
  */
 export interface Content {
-  /** Định danh nội dung đã chuẩn hoá — key của object store. */
+  /** Định danh nội dung đã chuẩn hoá — key của object store (suy ra từ postId). */
   contentId: string;
+  /** ID bài đăng gốc từ nền tảng. */
+  postId?: string;
+  /** ID tác giả/page gốc từ nền tảng. */
+  authorId?: string;
   platform: Platform;
   type: PostType;
   sourceUrl: string;

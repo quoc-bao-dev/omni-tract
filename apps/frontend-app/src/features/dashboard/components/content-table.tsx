@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -23,7 +23,7 @@ import {
 import type { CollectStatus, ContentRow, Metrics, PostType } from '@/features/dashboard/types';
 import { cn } from '@/lib/utils/cn';
 import { formatCompact, formatDate } from '@/lib/utils/format';
-import { type ColumnKey, useColumnStore } from '@/stores/column-store';
+import { useColumnStore } from '@/stores/column-store';
 import { useDetailStore } from '@/stores/detail-store';
 import { useSelectionStore } from '@/stores/selection-store';
 
@@ -43,25 +43,6 @@ const FORMAT_META: Record<PostType, { label: string; Icon: typeof CommentIcon }>
   carousel: { label: 'Carousel', Icon: LayersIcon },
 };
 
-const METRIC_COLUMNS: { key: keyof Metrics; label: string; Icon: typeof CommentIcon }[] = [
-  { key: 'likes', label: 'Likes', Icon: LikeIcon },
-  { key: 'comments', label: 'Comments', Icon: CommentIcon },
-  { key: 'shares', label: 'Shares', Icon: ShareIcon },
-  { key: 'views', label: 'Views', Icon: ViewIcon },
-  { key: 'saves', label: 'Save', Icon: SaveIcon },
-  { key: 'plays', label: 'Play', Icon: PlayIcon },
-];
-
-/** Map cột metric (Metrics) → key ẩn/hiện trong Settings. */
-const METRIC_COL: Record<keyof Metrics, ColumnKey> = {
-  likes: 'likes',
-  comments: 'comments',
-  shares: 'shares',
-  views: 'views',
-  saves: 'save',
-  plays: 'play',
-};
-
 // Bề rộng cố định (px) cho từng cột — dùng cho <colgroup> (table-fixed) + tính offset sticky.
 const COL_W = {
   check: 48,
@@ -74,6 +55,67 @@ const COL_W = {
   metric: 120,
   status: 140,
 } as const;
+
+/** Cột KHÔNG đóng băng (kéo đổi thứ tự được). Khớp REORDERABLE_COLUMNS ở column-store. */
+type NonFrozenKey =
+  | 'format'
+  | 'status'
+  | 'postedOn'
+  | 'likes'
+  | 'comments'
+  | 'shares'
+  | 'views'
+  | 'save'
+  | 'play';
+
+interface NonFrozenColDef {
+  width: number;
+  label: string;
+  /** Icon header (cột metric). */
+  Icon?: typeof CommentIcon;
+  cellClassName?: string;
+  render: (row: ContentRow) => ReactNode;
+}
+
+function metricCol(label: string, Icon: typeof CommentIcon, field: keyof Metrics): NonFrozenColDef {
+  return { width: COL_W.metric, label, Icon, render: (row) => formatCompact(row.metrics[field]) };
+}
+
+/** Định nghĩa render từng cột không đóng băng — render theo thứ tự `order` từ store. */
+const NON_FROZEN_COLS: Record<NonFrozenKey, NonFrozenColDef> = {
+  format: {
+    width: COL_W.format,
+    label: 'Format',
+    render: (row) => {
+      const fmt = FORMAT_META[row.type];
+      return (
+        <span className="inline-flex items-center gap-1.5">
+          <fmt.Icon className="size-4 text-text-muted" />
+          {fmt.label}
+        </span>
+      );
+    },
+  },
+  status: {
+    width: COL_W.status,
+    label: 'Status',
+    render: (row) => (
+      <Badge tone={STATUS_META[row.status].tone}>{STATUS_META[row.status].label}</Badge>
+    ),
+  },
+  postedOn: {
+    width: COL_W.posted,
+    label: 'Posted on',
+    cellClassName: 'text-text-secondary',
+    render: (row) => formatDate(row.postedAt),
+  },
+  likes: metricCol('Likes', LikeIcon, 'likes'),
+  comments: metricCol('Comments', CommentIcon, 'comments'),
+  shares: metricCol('Shares', ShareIcon, 'shares'),
+  views: metricCol('Views', ViewIcon, 'views'),
+  save: metricCol('Save', SaveIcon, 'saves'),
+  play: metricCol('Play', PlayIcon, 'plays'),
+};
 
 // sticky top-0 → header đóng băng khi cuộn dọc; bg đục để rows không lộ qua.
 const headBase =
@@ -101,6 +143,9 @@ export function ContentTable({
   // Đã scroll ngang chưa → hiện shadow ở ranh giới cột đóng băng.
   const [scrolled, setScrolled] = useState(false);
   const visible = useColumnStore((s) => s.visible);
+  const order = useColumnStore((s) => s.order);
+  // Cột không đóng băng đang hiện, theo đúng thứ tự người dùng đã sắp.
+  const orderedCols = order.filter((k) => visible[k]) as NonFrozenKey[];
 
   /** Chọn dòng: shift+click → chọn cả khoảng tới neo; click thường → toggle + đặt neo mới. */
   function selectRow(e: { shiftKey: boolean }, id: string, index: number) {
@@ -136,20 +181,16 @@ export function ContentTable({
     acc += c.w;
     lastStickyKey = c.key;
   }
-  const visibleMetrics = METRIC_COLUMNS.filter((c) => visible[METRIC_COL[c.key]]);
-
   // Tổng bề rộng cột đang hiện → đặt cứng width bảng để table-fixed KHÔNG co cột khi scroll
   // (cột render đúng COL_W ⇒ offset sticky khớp tuyệt đối, không lệch/đè).
-  const totalWidth =
+  const frozenWidth =
     COL_W.check +
     COL_W.no +
     (visible.url ? COL_W.url : 0) +
     (visible.author ? COL_W.author : 0) +
-    (visible.caption ? COL_W.caption : 0) +
-    (visible.format ? COL_W.format : 0) +
-    (visible.postedOn ? COL_W.posted : 0) +
-    visibleMetrics.length * COL_W.metric +
-    (visible.status ? COL_W.status : 0);
+    (visible.caption ? COL_W.caption : 0);
+  const totalWidth =
+    frozenWidth + orderedCols.reduce((sum, k) => sum + NON_FROZEN_COLS[k].width, 0);
 
   return (
     <div
@@ -166,13 +207,10 @@ export function ContentTable({
           {visible.url ? <col style={{ width: COL_W.url }} /> : null}
           {visible.author ? <col style={{ width: COL_W.author }} /> : null}
           {visible.caption ? <col style={{ width: COL_W.caption }} /> : null}
-          {visible.format ? <col style={{ width: COL_W.format }} /> : null}
-          {visible.status ? <col style={{ width: COL_W.status }} /> : null}
-          {visible.postedOn ? <col style={{ width: COL_W.posted }} /> : null}
-          {visibleMetrics.map((c) => (
+          {orderedCols.map((k) => (
             <col
-              key={c.key}
-              style={{ width: COL_W.metric }}
+              key={k}
+              style={{ width: NON_FROZEN_COLS[k].width }}
             />
           ))}
         </colgroup>
@@ -231,27 +269,31 @@ export function ContentTable({
                 Caption
               </Th>
             ) : null}
-            {visible.format ? <th className={cn(headBase, 'w-[140px]')}>Format</th> : null}
-            {visible.status ? <th className={cn(headBase, 'w-[140px]')}>Status</th> : null}
-            {visible.postedOn ? <th className={cn(headBase, 'w-[130px]')}>Posted on</th> : null}
-            {visibleMetrics.map((c) => (
-              <th
-                key={c.key}
-                className={cn(headBase, 'w-[120px]')}
-              >
-                <span className="inline-flex items-center gap-1">
-                  <c.Icon className="size-3.5 text-text-muted" />
-                  {c.label}
-                </span>
-              </th>
-            ))}
+            {orderedCols.map((k) => {
+              const def = NON_FROZEN_COLS[k];
+              const Icon = def.Icon;
+              return (
+                <th
+                  key={k}
+                  className={headBase}
+                >
+                  {Icon ? (
+                    <span className="inline-flex items-center gap-1">
+                      <Icon className="size-3.5 text-text-muted" />
+                      {def.label}
+                    </span>
+                  ) : (
+                    def.label
+                  )}
+                </th>
+              );
+            })}
           </tr>
         </thead>
 
         <tbody>
           {rows.map((row, i) => {
             const isSel = selected.has(row.id);
-            const status = STATUS_META[row.status];
             return (
               <tr
                 key={row.id}
@@ -375,37 +417,17 @@ export function ContentTable({
                     </button>
                   </Td>
                 ) : null}
-                {visible.format ? (
-                  <td className={cellBase}>
-                    {(() => {
-                      const fmt = FORMAT_META[row.type];
-                      return (
-                        <span className="inline-flex items-center gap-1.5">
-                          <fmt.Icon className="size-4 text-text-muted" />
-                          {fmt.label}
-                        </span>
-                      );
-                    })()}
-                  </td>
-                ) : null}
-                {visible.status ? (
-                  <td className={cellBase}>
-                    <Badge tone={status.tone}>{status.label}</Badge>
-                  </td>
-                ) : null}
-                {visible.postedOn ? (
-                  <td className={cn(cellBase, 'text-text-secondary')}>
-                    {formatDate(row.postedAt)}
-                  </td>
-                ) : null}
-                {visibleMetrics.map((c) => (
-                  <td
-                    key={c.key}
-                    className={cellBase}
-                  >
-                    {formatCompact(row.metrics[c.key])}
-                  </td>
-                ))}
+                {orderedCols.map((k) => {
+                  const def = NON_FROZEN_COLS[k];
+                  return (
+                    <td
+                      key={k}
+                      className={cn(cellBase, def.cellClassName)}
+                    >
+                      {def.render(row)}
+                    </td>
+                  );
+                })}
               </tr>
             );
           })}

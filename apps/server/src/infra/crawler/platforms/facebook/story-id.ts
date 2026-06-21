@@ -7,7 +7,7 @@ export interface StoryRef {
 }
 
 /** variables của composer-preview — giữ nguyên cấu trúc FB, chỉ thay `params.url`. */
-function resolveVariables(url: string) {
+export function resolveVariables(url: string) {
   return {
     feedLocation: 'FEED_COMPOSER',
     goodwillCampaignId: '',

@@ -1,17 +1,38 @@
 'use client';
 
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { ExportFormat } from '@omni/sdk';
 import { useEffect, useState } from 'react';
 import { Drawer } from '@/components/ui/drawer';
 import { GripVerticalIcon } from '@/components/ui/icon';
 import { RadioGroup } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
+import { ExportFieldsModal } from '@/features/settings/components/export-fields-modal';
+import { cn } from '@/lib/utils/cn';
 import {
-  COLUMN_META,
+  COLUMN_LABEL,
   type ColumnKey,
   type ColumnVisibility,
+  FROZEN_COLUMNS,
   useColumnStore,
 } from '@/stores/column-store';
+import { useExportStore } from '@/stores/export-store';
 import { useToastStore } from '@/stores/toast-store';
 
 export type { ExportFormat };
@@ -36,17 +57,33 @@ interface SettingsDrawerProps {
   onSave?: (value: SettingsValue) => void;
 }
 
-/** Drawer Settings (Figma 85:2625): Columns (toggle ẩn/hiện) + Export file as (radio). */
+/** Drawer Settings (Figma 85:2625): Columns (toggle ẩn/hiện + kéo đổi thứ tự) + Export file as. */
 export function SettingsDrawer({ open, onClose, onSave }: SettingsDrawerProps) {
   const visible = useColumnStore((s) => s.visible);
   const setVisible = useColumnStore((s) => s.setVisible);
+  const storeOrder = useColumnStore((s) => s.order);
+  const setStoreOrder = useColumnStore((s) => s.setOrder);
+  const storeFormat = useExportStore((s) => s.format);
+  const setStoreFormat = useExportStore((s) => s.setFormat);
 
   // Draft cục bộ — chỉ áp dụng khi bấm Save. Đồng bộ lại từ store mỗi lần mở.
   const [draft, setDraft] = useState<ColumnVisibility>(visible);
-  const [exportFormat, setExportFormat] = useState<ExportFormat>('xlsx');
+  const [colOrder, setColOrder] = useState<ColumnKey[]>(storeOrder);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>(storeFormat);
+  const [fieldsModalOpen, setFieldsModalOpen] = useState(false);
   useEffect(() => {
-    if (open) setDraft(visible);
-  }, [open, visible]);
+    if (open) {
+      setDraft(visible);
+      setColOrder(storeOrder);
+      setExportFormat(storeFormat);
+    }
+  }, [open, visible, storeOrder, storeFormat]);
+
+  const sensors = useSensors(
+    // distance 6px → click vào Switch không vô tình bắt đầu kéo.
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   function toggleColumn(key: ColumnKey) {
     // Chặn ẩn quá nhiều: phải còn ít nhất MIN_VISIBLE_COLUMNS cột.
@@ -65,8 +102,21 @@ export function SettingsDrawer({ open, onClose, onSave }: SettingsDrawerProps) {
     setDraft((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
+  function handleDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setColOrder((prev) => {
+      const from = prev.indexOf(active.id as ColumnKey);
+      const to = prev.indexOf(over.id as ColumnKey);
+      if (from === -1 || to === -1) return prev;
+      return arrayMove(prev, from, to);
+    });
+  }
+
   function handleSave() {
     setVisible(draft);
+    setStoreOrder(colOrder);
+    setStoreFormat(exportFormat);
     onSave?.({ columns: draft, exportFormat });
     onClose();
   }
@@ -89,27 +139,50 @@ export function SettingsDrawer({ open, onClose, onSave }: SettingsDrawerProps) {
       }
     >
       <div className="flex flex-col gap-4">
-        {/* Columns — bật/tắt hiển thị cột trên bảng */}
+        {/* Columns — bật/tắt hiển thị + kéo đổi thứ tự (cột đóng băng giữ cố định ở trên) */}
         <section className="rounded-xl border border-border-overlay bg-surface p-4">
           <h3 className="font-semibold text-ink text-md">Columns</h3>
           <ul className="mt-4 flex flex-col gap-2">
-            {COLUMN_META.map((col) => (
+            {/* Cột đóng băng trái (URL, Author) — KHÔNG kéo được */}
+            {FROZEN_COLUMNS.map((key) => (
               <li
-                key={col.key}
+                key={key}
                 className="flex items-center gap-3 rounded-xl border border-border-overlay bg-surface-alt p-3"
               >
                 <GripVerticalIcon
-                  className="size-6 shrink-0 cursor-grab text-text-muted"
+                  className="size-6 shrink-0 text-text-muted opacity-30"
                   aria-hidden
                 />
-                <span className="flex-1 font-medium text-ink text-md">{col.label}</span>
+                <span className="flex-1 font-medium text-ink text-md">{COLUMN_LABEL[key]}</span>
                 <Switch
-                  aria-label={`Cột ${col.label}`}
-                  checked={draft[col.key]}
-                  onChange={() => toggleColumn(col.key)}
+                  aria-label={`Cột ${COLUMN_LABEL[key]}`}
+                  checked={draft[key]}
+                  onChange={() => toggleColumn(key)}
                 />
               </li>
             ))}
+
+            {/* Cột kéo đổi thứ tự */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={colOrder}
+                strategy={verticalListSortingStrategy}
+              >
+                {colOrder.map((key) => (
+                  <SortableColumnRow
+                    key={key}
+                    id={key}
+                    label={COLUMN_LABEL[key]}
+                    checked={draft[key]}
+                    onToggle={() => toggleColumn(key)}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
           </ul>
         </section>
 
@@ -123,8 +196,67 @@ export function SettingsDrawer({ open, onClose, onSave }: SettingsDrawerProps) {
             options={EXPORT_OPTIONS}
             onChange={setExportFormat}
           />
+          <button
+            type="button"
+            onClick={() => setFieldsModalOpen(true)}
+            className="mt-4 h-10 w-full rounded-md border border-border-subtle bg-surface px-3 font-semibold text-ink text-sm shadow-action hover:bg-surface-alt"
+          >
+            Configure export fields
+          </button>
         </section>
       </div>
+
+      <ExportFieldsModal
+        open={fieldsModalOpen}
+        onClose={() => setFieldsModalOpen(false)}
+      />
     </Drawer>
+  );
+}
+
+/** 1 dòng cột kéo-thả được (sortable) trong Settings. */
+function SortableColumnRow({
+  id,
+  label,
+  checked,
+  onToggle,
+}: {
+  id: ColumnKey;
+  label: string;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn(
+        'flex items-center gap-3 rounded-xl border border-border-overlay bg-surface-alt p-3',
+        isDragging && 'relative z-10 opacity-90 shadow-menu',
+      )}
+    >
+      <button
+        type="button"
+        aria-label={`Kéo để sắp xếp ${label}`}
+        className="shrink-0 cursor-grab touch-none text-text-muted active:cursor-grabbing"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVerticalIcon
+          className="size-6"
+          aria-hidden
+        />
+      </button>
+      <span className="flex-1 font-medium text-ink text-md">{label}</span>
+      <Switch
+        aria-label={`Cột ${label}`}
+        checked={checked}
+        onChange={onToggle}
+      />
+    </li>
   );
 }

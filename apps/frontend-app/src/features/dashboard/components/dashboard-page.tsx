@@ -9,14 +9,18 @@ import { useHydrateContent } from '@/features/dashboard/hooks/use-content-list';
 import { deriveStats } from '@/features/dashboard/stats';
 import { useColumnStore } from '@/stores/column-store';
 import { useContentStore } from '@/stores/content-store';
+import { useExportFieldsStore } from '@/stores/export-fields-store';
+import { useExportStore } from '@/stores/export-store';
 import { useImportStore } from '@/stores/import-store';
 
 /** Dashboard (Figma 108:5749): rỗng → Greeting; có dữ liệu → stats + bảng. */
 export function DashboardPage() {
   useHydrateContent(); // nạp dữ liệu đã lưu từ IndexedDB (1 lần)
-  // Nạp cấu hình ẩn/hiện cột từ localStorage sau khi mount (tránh đọc trong initializer → lệch SSR).
+  // Nạp cấu hình cột + định dạng export từ localStorage sau mount (tránh đọc trong initializer → lệch SSR).
   useEffect(() => {
     useColumnStore.getState().hydrate();
+    useExportStore.getState().hydrate();
+    useExportFieldsStore.getState().hydrate();
   }, []);
   const hydrated = useContentStore((s) => s.hydrated);
   const rows = useContentStore((s) => s.rows);

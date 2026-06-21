@@ -1,6 +1,6 @@
 import { fbConfig } from './fb.config';
 import { firstNumber, walkObjects } from './fb-json';
-import { fbGraphql } from './graphql-client';
+import { fbGraphqlRaw, parseFbJsonChunks } from './graphql-client';
 
 // Ưu tiên HD → SD. KHÔNG tải video, chỉ lấy link để hiển thị.
 const VIDEO_URL_KEYS = [
@@ -22,7 +22,7 @@ export function extractVideoUrl(data: unknown): string | undefined {
 }
 
 /** variables video query (video_home) — giữ nguyên cấu trúc FB, chỉ thay videoID/videoIDStr. */
-function videoVariables(videoId: string) {
+export function videoVariables(videoId: string) {
   return {
     caller: 'TAHOE',
     entityNumber: 5,
@@ -53,17 +53,55 @@ export interface VideoMeta {
   videoUrl?: string;
   /** Thời điểm đăng (publish_time), ISO 8601. */
   postedAt?: string;
+  /** Lượt xem video — null nếu FB không công khai. */
+  views?: number | null;
+  /** Lượt phát video — null nếu FB không công khai. */
+  plays?: number | null;
 }
 
 /**
- * Bước 3: videoID (lấy từ permalink attachments[0].target.id) → link phát + publish_time.
- * doc 26984026684624315. KHÔNG cần đăng nhập.
+ * Object `video_view_count_renderer.feedback` — chứa cả view & play count, nằm trong chunk @defer
+ * `CometVideoHomeHeroUnit_story$defer$CometVideoHomeHeroUnitLeftBottomSection_video`.
+ * Quét mọi object/chunk để không phụ thuộc vị trí chunk.
+ */
+function findViewCountFeedback(data: unknown): Record<string, unknown> | undefined {
+  for (const o of walkObjects(data)) {
+    const renderer = o.video_view_count_renderer as { feedback?: unknown } | undefined;
+    const fb = renderer?.feedback;
+    if (fb && typeof fb === 'object') return fb as Record<string, unknown>;
+  }
+  return undefined;
+}
+
+/**
+ * Trích views + plays từ renderer:
+ *   views = ...feedback.video_view_count
+ *   plays = ...feedback.play_count
+ * null nếu FB ẩn (renderer/feedback null).
+ */
+export function extractVideoCounts(data: unknown): { views: number | null; plays: number | null } {
+  const fb = findViewCountFeedback(data);
+  const num = (key: string) => (typeof fb?.[key] === 'number' ? (fb[key] as number) : null);
+  return { views: num('video_view_count'), plays: num('play_count') };
+}
+
+/**
+ * Bước 3: videoID (lấy từ permalink attachments[0].target.id) → link phát + publish_time + views/plays.
+ * doc 26984026684624315. Response gồm NHIỀU chunk @stream/@defer → parse hết rồi quét.
+ * KHÔNG cần đăng nhập.
  */
 export async function fetchVideoMeta(videoId: string): Promise<VideoMeta> {
-  const data = await fbGraphql({ docId: fbConfig.docId.video, variables: videoVariables(videoId) });
-  const publish = firstNumber(data, 'publish_time');
+  const raw = await fbGraphqlRaw({
+    docId: fbConfig.docId.video,
+    variables: videoVariables(videoId),
+  });
+  const chunks = parseFbJsonChunks(raw);
+  const publish = firstNumber(chunks, 'publish_time');
+  const { views, plays } = extractVideoCounts(chunks);
   return {
-    videoUrl: extractVideoUrl(data),
+    videoUrl: extractVideoUrl(chunks),
     postedAt: publish ? new Date(publish * 1000).toISOString() : undefined,
+    views,
+    plays,
   };
 }

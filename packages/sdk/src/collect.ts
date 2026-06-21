@@ -34,7 +34,12 @@ export interface Author {
 export interface CollectResultOk {
   ok: true;
   sourceUrl: string;
+  /** Định danh nội dung — suy ra từ postId (vd `facebook_{postId}`). */
   contentId: string;
+  /** ID bài đăng gốc từ nền tảng (vd post_id Facebook). */
+  postId?: string;
+  /** ID tác giả/page gốc từ nền tảng (vd actor_id Facebook). */
+  authorId?: string;
   platform: Platform;
   type: PostType;
   title?: string;

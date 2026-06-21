@@ -52,10 +52,10 @@ export interface FbGraphqlRequest {
 }
 
 /**
- * Gọi GraphQL FB bằng persisted query (doc_id + variables), form-urlencoded.
- * Throw nếu HTTP lỗi, response không parse được, hoặc payload có `errors`.
+ * Gửi 1 persisted query → trả về NGUYÊN văn bản response (có thể nhiều dòng JSON do @stream/@defer).
+ * Throw nếu HTTP lỗi. KHÔNG parse — dùng khi cần toàn bộ response thô.
  */
-export async function fbGraphql({ docId, variables }: FbGraphqlRequest): Promise<unknown> {
+export async function fbGraphqlRaw({ docId, variables }: FbGraphqlRequest): Promise<string> {
   const body = new URLSearchParams({
     doc_id: docId,
     variables: JSON.stringify(variables),
@@ -83,8 +83,15 @@ export async function fbGraphql({ docId, variables }: FbGraphqlRequest): Promise
   if (!res.ok) {
     throw new Error(`FB GraphQL HTTP ${res.status}`);
   }
+  return res.text();
+}
 
-  const json = parseFbJson(await res.text());
+/**
+ * Gọi GraphQL FB bằng persisted query (doc_id + variables), form-urlencoded.
+ * Trả CHUNK ĐẦU (data chính). Throw nếu HTTP lỗi, không parse được, hoặc payload có `errors`.
+ */
+export async function fbGraphql(req: FbGraphqlRequest): Promise<unknown> {
+  const json = parseFbJson(await fbGraphqlRaw(req));
   const errors = (json as { errors?: unknown }).errors;
   if (Array.isArray(errors) && errors.length > 0) {
     throw new Error(`FB GraphQL errors: ${JSON.stringify(errors).slice(0, 300)}`);
@@ -100,6 +107,19 @@ function parseFbJson(text: string): unknown {
     if (parsed !== undefined) return parsed;
   }
   throw new Error('FB GraphQL: không parse được JSON response');
+}
+
+/** Parse TẤT CẢ chunk JSON (mỗi dòng 1 object do @stream/@defer). Bỏ dòng rác/không parse được. */
+export function parseFbJsonChunks(text: string): unknown[] {
+  const cleaned = text.replace(/^for \(;;\);/, '').trim();
+  const whole = tryParse(cleaned);
+  if (whole !== undefined) return [whole]; // response 1 object duy nhất
+  const out: unknown[] = [];
+  for (const line of cleaned.split('\n')) {
+    const parsed = tryParse(line.trim());
+    if (parsed !== undefined) out.push(parsed);
+  }
+  return out;
 }
 
 function tryParse(s: string): unknown | undefined {

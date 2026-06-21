@@ -3,7 +3,7 @@ import { fbGraphql } from './graphql-client';
 import { encodeStoryId, type StoryRef } from './story-id';
 
 /** variables permalink — giữ nguyên cấu trúc FB, chỉ thay `storyID`. */
-function postVariables(storyID: string) {
+export function postVariables(storyID: string) {
   return {
     feedbackSource: 2,
     feedLocation: 'PERMALINK',

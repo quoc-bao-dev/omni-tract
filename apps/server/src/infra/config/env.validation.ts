@@ -1,11 +1,5 @@
 import { plainToInstance, Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsString, Max, Min, validateSync } from 'class-validator';
-
-/** Nguồn dữ liệu crawl: mock (phase dev) hay adapter thật (§7). */
-export enum CrawlerMode {
-  mock = 'mock',
-  real = 'real',
-}
+import { IsInt, IsOptional, IsString, Max, Min, validateSync } from 'class-validator';
 
 /** Schema biến môi trường — validate fail-fast lúc bootstrap (ARCHITECTURE §10). */
 export class EnvVars {
@@ -18,9 +12,6 @@ export class EnvVars {
   /** CORS allowlist origin của FE (bắt buộc vì FE static gọi cross-origin). */
   @IsString()
   WEB_ORIGIN = 'http://localhost:3000';
-
-  @IsEnum(CrawlerMode)
-  CRAWLER_MODE: CrawlerMode = CrawlerMode.mock;
 
   /** Key KiotProxy — nếu có, request crawl FB đi qua proxy (lấy proxy động qua API). */
   @IsOptional()
