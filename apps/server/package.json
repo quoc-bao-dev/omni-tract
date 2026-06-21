@@ -67,5 +67,8 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     }
-  }
+  },
+  "files": [
+    "dist"
+  ]
 }
