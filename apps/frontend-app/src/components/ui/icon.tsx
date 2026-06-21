@@ -94,6 +94,37 @@ export function ChevronDownIcon(props: IconProps) {
   );
 }
 
+/** Mũi tên dài lên (sort tăng dần). */
+export function ArrowUpIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 19V6" />
+      <path d="m7 11 5-5 5 5" />
+    </svg>
+  );
+}
+
+/** Mũi tên dài xuống (sort giảm dần). */
+export function ArrowDownIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 5v13" />
+      <path d="m7 13 5 5 5-5" />
+    </svg>
+  );
+}
+
+/** Mũi tên 2 đầu (chưa sort). */
+export function ArrowUpDownIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 5v14" />
+      <path d="m8 9 4-4 4 4" />
+      <path d="m8 15 4 4 4-4" />
+    </svg>
+  );
+}
+
 export function GripVerticalIcon(props: IconProps) {
   return (
     <svg

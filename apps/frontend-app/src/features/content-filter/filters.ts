@@ -1,13 +1,15 @@
 import type { CollectStatus, Platform, PostType } from '@omni/sdk';
 import type { SelectOption } from '@/components/ui/multi-select';
 
-export type FilterGroupKey = 'platforms' | 'postTypes' | 'statuses';
+export type FilterGroupKey = 'platforms' | 'postTypes' | 'statuses' | 'authors';
 
 export interface FilterValue {
   postedOn: string;
   platforms: Platform[];
   postTypes: PostType[];
   statuses: CollectStatus[];
+  /** Tên tác giả được chọn (multi-select, options động từ dữ liệu). */
+  authors: string[];
 }
 
 export const EMPTY_FILTER: FilterValue = {
@@ -15,6 +17,7 @@ export const EMPTY_FILTER: FilterValue = {
   platforms: [],
   postTypes: [],
   statuses: [],
+  authors: [],
 };
 
 export const PLATFORMS: SelectOption<Platform>[] = [
@@ -64,6 +67,7 @@ export function isFilterActive(v: FilterValue): boolean {
     v.postedOn.trim() !== '' ||
     v.platforms.length > 0 ||
     v.postTypes.length > 0 ||
-    v.statuses.length > 0
+    v.statuses.length > 0 ||
+    v.authors.length > 0
   );
 }

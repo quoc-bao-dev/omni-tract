@@ -7,6 +7,8 @@ import { parsePlatform } from '@/lib/url/platform';
 import { logger } from '@/lib/utils/logger';
 import { useContentStore } from '@/stores/content-store';
 import { useFilterStore } from '@/stores/filter-store';
+import { useSearchStore } from '@/stores/search-store';
+import { useSortStore } from '@/stores/sort-store';
 
 type ImportStatus = 'idle' | 'loading' | 'done';
 
@@ -30,8 +32,10 @@ export const useImportStore = create<ImportStore>((set, get) => ({
   async startImport(urls) {
     if (get().status === 'loading' || urls.length === 0) return;
 
-    // 1) clear toàn bộ filter
+    // 1) clear toàn bộ filter + sort + search
     useFilterStore.getState().clear();
+    useSortStore.getState().clear();
+    useSearchStore.getState().clear();
 
     // 2) tạo row pending; URL TRÙNG (đã có trong bảng) → tái dùng row cũ, KHÔNG tạo mới
     const contentStore = useContentStore.getState();

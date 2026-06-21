@@ -28,6 +28,28 @@ export function ActiveFiltersBar({ resultCount }: { resultCount: number }) {
           </div>
         ) : null}
 
+        {value.authors.length > 0 ? (
+          <div className="flex items-center gap-2 rounded-lg border border-border-subtle border-dashed p-2">
+            <span className="font-medium text-sm text-text-neutral">Author:</span>
+            {value.authors.map((name) => (
+              <span
+                key={name}
+                className="inline-flex items-center gap-0.5 rounded-full border border-border-subtle bg-surface py-0.5 pr-1.5 pl-2.5 font-medium text-ink text-sm shadow-action"
+              >
+                {name}
+                <button
+                  type="button"
+                  aria-label={`Bỏ ${name}`}
+                  onClick={() => removeTag('authors', name)}
+                  className="grid size-4 place-items-center text-text-muted hover:text-ink"
+                >
+                  <XCircleIcon className="size-4" />
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : null}
+
         {FILTER_GROUPS.map((group) => {
           const selected = value[group.key];
           if (selected.length === 0) return null;

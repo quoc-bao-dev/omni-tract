@@ -5,6 +5,9 @@ import { Avatar } from '@/components/ui/avatar';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
+  ArrowDownIcon,
+  ArrowUpDownIcon,
+  ArrowUpIcon,
   BroadcastIcon,
   CommentIcon,
   ImageIcon,
@@ -23,9 +26,12 @@ import {
 import type { CollectStatus, ContentRow, Metrics, PostType } from '@/features/dashboard/types';
 import { cn } from '@/lib/utils/cn';
 import { formatCompact, formatDate } from '@/lib/utils/format';
+import { foldVi } from '@/lib/utils/vietnamese';
 import { useColumnStore } from '@/stores/column-store';
 import { useDetailStore } from '@/stores/detail-store';
+import { useSearchStore } from '@/stores/search-store';
 import { useSelectionStore } from '@/stores/selection-store';
+import { type SortKey, useSortStore } from '@/stores/sort-store';
 
 const STATUS_META: Record<CollectStatus, { tone: BadgeTone; label: string }> = {
   success: { tone: 'success', label: 'Success' },
@@ -144,6 +150,7 @@ export function ContentTable({
   const [scrolled, setScrolled] = useState(false);
   const visible = useColumnStore((s) => s.visible);
   const order = useColumnStore((s) => s.order);
+  const query = useSearchStore((s) => s.query);
   // Cột không đóng băng đang hiện, theo đúng thứ tự người dùng đã sắp.
   const orderedCols = order.filter((k) => visible[k]) as NonFrozenKey[];
 
@@ -256,7 +263,7 @@ export function ContentTable({
                 shadow={scrolled}
                 className="w-[190px]"
               >
-                Author/Page
+                <HeaderSort sortKey="author">Author/Page</HeaderSort>
               </Th>
             ) : null}
             {visible.caption ? (
@@ -266,7 +273,7 @@ export function ContentTable({
                 shadow={scrolled}
                 className="w-[260px]"
               >
-                Caption
+                <HeaderSort sortKey="caption">Caption</HeaderSort>
               </Th>
             ) : null}
             {orderedCols.map((k) => {
@@ -277,14 +284,16 @@ export function ContentTable({
                   key={k}
                   className={headBase}
                 >
-                  {Icon ? (
-                    <span className="inline-flex items-center gap-1">
-                      <Icon className="size-3.5 text-text-muted" />
-                      {def.label}
-                    </span>
-                  ) : (
-                    def.label
-                  )}
+                  <HeaderSort sortKey={k}>
+                    {Icon ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Icon className="size-3.5 text-text-muted" />
+                        {def.label}
+                      </span>
+                    ) : (
+                      def.label
+                    )}
+                  </HeaderSort>
                 </th>
               );
             })}
@@ -337,7 +346,10 @@ export function ContentTable({
                     selected={isSel}
                   >
                     <span className="line-clamp-2 max-w-[186px] text-text-secondary">
-                      {row.url}
+                      <Highlight
+                        text={row.url}
+                        query={query}
+                      />
                     </span>
                   </Td>
                 ) : null}
@@ -363,10 +375,18 @@ export function ContentTable({
                           onClick={(e) => e.stopPropagation()}
                           className="truncate font-medium hover:underline"
                         >
-                          {row.author.name}
+                          <Highlight
+                            text={row.author.name}
+                            query={query}
+                          />
                         </a>
                       ) : (
-                        <span className="truncate font-medium">{row.author.name}</span>
+                        <span className="truncate font-medium">
+                          <Highlight
+                            text={row.author.name}
+                            query={query}
+                          />
+                        </span>
                       )}
                       {row.author.verified ? <VerifiedIcon className="shrink-0 text-info" /> : null}
                     </span>
@@ -394,7 +414,10 @@ export function ContentTable({
                         />
                       )}
                       <span className="line-clamp-2 max-w-[200px] text-text-primary">
-                        {row.caption.text}
+                        <Highlight
+                          text={row.caption.text}
+                          query={query}
+                        />
                       </span>
                     </span>
                     {/* Mở chi tiết — hiện khi hover row (group), absolute trong ô caption. */}
@@ -435,6 +458,63 @@ export function ContentTable({
       </table>
     </div>
   );
+}
+
+/**
+ * Bôi vàng phần text khớp `query` — bỏ dấu + không phân biệt hoa thường (tiếng Việt).
+ * Đối sánh trên chuỗi đã fold (giữ nguyên độ dài) rồi cắt text GỐC để hiển thị đúng dấu.
+ */
+function Highlight({ text, query }: { text: string; query: string }) {
+  const q = foldVi(query.trim());
+  if (!q) return <>{text}</>;
+  const display = text.normalize('NFC');
+  const folded = foldVi(display); // cùng độ dài với display → index khớp
+
+  const parts: ReactNode[] = [];
+  let last = 0;
+  let key = 0;
+  let idx = folded.indexOf(q);
+  while (idx !== -1) {
+    if (idx > last) parts.push(display.slice(last, idx));
+    parts.push(
+      <mark
+        key={key}
+        className="rounded-[2px] bg-warning/40 text-ink"
+      >
+        {display.slice(idx, idx + q.length)}
+      </mark>,
+    );
+    key += 1;
+    last = idx + q.length;
+    idx = folded.indexOf(q, last);
+  }
+  if (last < display.length) parts.push(display.slice(last));
+  return <>{parts}</>;
+}
+
+/** Nút sort trong ô header: label + mũi tên lên/xuống 3 trạng thái (asc/desc/none). */
+function HeaderSort({ sortKey, children }: { sortKey: SortKey; children: ReactNode }) {
+  const sort = useSortStore((s) => s.sort);
+  const toggle = useSortStore((s) => s.toggle);
+  const dir = sort?.key === sortKey ? sort.dir : undefined;
+  return (
+    <button
+      type="button"
+      onClick={() => toggle(sortKey)}
+      aria-label="Sắp xếp cột"
+      className="inline-flex items-center gap-1 text-left transition-colors hover:text-ink"
+    >
+      {children}
+      <SortArrow dir={dir} />
+    </button>
+  );
+}
+
+/** Mũi tên dài: ↑ khi asc, ↓ khi desc, ↕ mờ khi chưa sort. */
+function SortArrow({ dir }: { dir?: 'asc' | 'desc' }) {
+  if (dir === 'asc') return <ArrowUpIcon className="size-4 shrink-0 text-ink" />;
+  if (dir === 'desc') return <ArrowDownIcon className="size-4 shrink-0 text-ink" />;
+  return <ArrowUpDownIcon className="size-4 shrink-0 text-text-muted/40" />;
 }
 
 /** Lớp gradient phủ mép phải cột đóng băng cuối — chỉ hiện khi đã scroll ngang. */

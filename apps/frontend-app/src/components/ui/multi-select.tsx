@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { CheckIcon, ChevronDownIcon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils/cn';
 
 export interface SelectOption<T extends string> {
   value: T;
   label: string;
+  /** Phần tử hiển thị trước label (vd avatar tác giả). */
+  leading?: ReactNode;
 }
 
 interface MultiSelectProps<T extends string> {
@@ -94,7 +96,10 @@ export function MultiSelect<T extends string>({
                     >
                       {checked ? <CheckIcon className="size-3.5 text-white" /> : null}
                     </span>
-                    <span className="font-medium text-md text-text-primary">{opt.label}</span>
+                    {opt.leading}
+                    <span className="truncate font-medium text-md text-text-primary">
+                      {opt.label}
+                    </span>
                   </button>
                 </li>
               );

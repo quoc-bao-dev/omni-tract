@@ -1,8 +1,9 @@
 'use client';
 
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { Avatar } from '@/components/ui/avatar';
 import { Drawer } from '@/components/ui/drawer';
-import { MultiSelect } from '@/components/ui/multi-select';
+import { MultiSelect, type SelectOption } from '@/components/ui/multi-select';
 import { DateRangePicker } from '@/features/content-filter/components/date-range-picker';
 import {
   EMPTY_FILTER,
@@ -11,7 +12,34 @@ import {
   POST_TYPES,
   STATUSES,
 } from '@/features/content-filter/filters';
+import { useContentStore } from '@/stores/content-store';
 import { useFilters } from '@/stores/filter-store';
+
+/** Tác giả duy nhất (theo tên) trong dữ liệu hiện có → options multi-select kèm avatar. */
+function useAuthorOptions(): SelectOption<string>[] {
+  const rows = useContentStore((s) => s.rows);
+  return useMemo(() => {
+    const byName = new Map<string, string | undefined>();
+    for (const r of rows) {
+      if (r.author.name && !byName.has(r.author.name))
+        byName.set(r.author.name, r.author.avatarUrl);
+    }
+    return [...byName.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0], 'vi'))
+      .map(([name, avatarUrl]) => ({
+        value: name,
+        label: name,
+        leading: (
+          <Avatar
+            src={avatarUrl}
+            alt={name}
+            fallback={name.charAt(0)}
+            size={24}
+          />
+        ),
+      }));
+  }, [rows]);
+}
 
 interface FilterDrawerProps {
   open: boolean;
@@ -21,6 +49,7 @@ interface FilterDrawerProps {
 /** Drawer Filters (Figma 154:11316): Posted on + Platform/Post type/Status (multi-select). */
 export function FilterDrawer({ open, onClose }: FilterDrawerProps) {
   const { value, apply } = useFilters();
+  const authorOptions = useAuthorOptions();
   const [draft, setDraft] = useState<FilterValue>(value);
 
   // Mỗi lần mở: đồng bộ draft với filter đang áp.
@@ -66,6 +95,15 @@ export function FilterDrawer({ open, onClose }: FilterDrawerProps) {
           <DateRangePicker
             value={draft.postedOn}
             onChange={(v) => patch({ postedOn: v })}
+          />
+        </Field>
+
+        <Field label="Author">
+          <MultiSelect
+            options={authorOptions}
+            value={draft.authors}
+            onChange={(v) => patch({ authors: v })}
+            placeholder="- Select author -"
           />
         </Field>
 
